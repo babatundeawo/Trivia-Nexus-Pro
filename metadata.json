@@ -1,0 +1,5 @@
+{
+  "name": "Trivia Nexus Pro",
+  "description": "A high-end, AI-powered trivia platform featuring multiple game modes (Wipeout, Lightning, Millionaire, Team Battle), dynamic difficulty tiers, and a real-time synthesized audio engine.",
+  "requestFramePermissions": []
+}
