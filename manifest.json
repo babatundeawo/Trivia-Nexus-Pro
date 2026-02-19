@@ -1,25 +1,39 @@
 {
   "short_name": "TriviaNexusPro",
   "name": "Trivia Nexus Pro",
+  "description": "A high-end, AI-powered trivia platform featuring multiple game modes (Wipeout, Lightning, Millionaire, Team Battle), dynamic difficulty tiers, and a real-time synthesised audio engine.",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "theme_color": "#020617",
   "background_color": "#020617",
+  "categories": ["productivity", "education", "lifestyle"],
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/1160/1160358.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
     },
     {
-    "src": "/icon-192.png",
-    "type": "image/png",
-    "sizes": "192x192"
+      "src": "https://cdn-icons-png.flaticon.com/512/1160/1160358.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1160/1160358.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
     },
     {
-    "src": "/icon-512.png",
-    "type": "image/png",
-    "sizes": "512x512"
-  }
+      "src": "https://cdn-icons-png.flaticon.com/512/1160/1160358.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
   ]
 }
