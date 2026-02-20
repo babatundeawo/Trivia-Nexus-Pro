@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { audioEngine } from '../services/audio';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -14,14 +15,14 @@ export const Button: React.FC<ButtonProps> = ({
   onClick,
   ...props 
 }) => {
-  const base = "px-4 py-3 lg:px-6 lg:py-4 rounded-xl lg:rounded-2xl font-black uppercase tracking-widest transition-all duration-200 flex items-center justify-center gap-2 select-none active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed text-xs lg:text-sm";
+  const base = "px-6 py-4 rounded-2xl font-bold uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-3 select-none disabled:opacity-40 disabled:cursor-not-allowed text-sm shadow-sm";
   
   const variants = {
-    primary: "bg-[#00f2ff] text-black shadow-lg shadow-cyan-500/10 hover:shadow-cyan-400/30",
-    secondary: "bg-[#7000ff] text-white shadow-lg shadow-purple-500/10 hover:shadow-purple-400/30",
-    accent: "bg-[#ff00c8] text-white shadow-lg shadow-pink-500/10 hover:shadow-pink-400/30",
-    outline: "bg-transparent border-2 border-[#00f2ff] text-[#00f2ff] hover:bg-[#00f2ff]/5",
-    ghost: "bg-white/5 text-slate-300 hover:text-white hover:bg-white/10"
+    primary: "bg-[#00b4d8] text-white shadow-cyan-500/20",
+    secondary: "bg-[#4361ee] text-white shadow-blue-500/20",
+    accent: "bg-[#f72585] text-white shadow-pink-500/20",
+    outline: "bg-transparent border border-[#00b4d8] text-[#00b4d8] hover:bg-[#00b4d8]/5",
+    ghost: "bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200"
   };
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -30,13 +31,14 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <button 
-      className={`${base} ${variants[variant]} ${glow ? 'active-pulse' : ''} ${className}`}
+    <motion.button 
+      whileTap={{ scale: 0.96 }}
+      className={`${base} ${variants[variant]} ${className}`}
       onClick={handleClick}
       {...props}
     >
       {children}
-    </button>
+    </motion.button>
   );
 };
 
@@ -45,7 +47,7 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string; noP
   className = '', 
   noPadding = false 
 }) => (
-  <div className={`glass rounded-2xl lg:rounded-[2.5rem] border border-white/5 ${noPadding ? '' : 'p-5 lg:p-8'} ${className}`}>
+  <div className={`glass rounded-3xl border border-slate-200 ${noPadding ? '' : 'p-6 md:p-8'} ${className}`}>
     {children}
   </div>
 );
@@ -60,23 +62,23 @@ export const Badge: React.FC<{
   className = ''
 }) => {
   const colors = {
-    cyan: "bg-cyan-500/10 text-cyan-400 border-cyan-400/20",
-    purple: "bg-purple-500/10 text-purple-400 border-purple-400/20",
-    pink: "bg-pink-500/10 text-pink-400 border-pink-400/20",
-    emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-400/20",
-    rose: "bg-rose-500/10 text-rose-400 border-rose-400/20",
-    slate: "bg-slate-500/10 text-slate-400 border-slate-400/20"
+    cyan: "bg-cyan-50 text-cyan-700 border-cyan-200",
+    purple: "bg-purple-50 text-purple-700 border-purple-200",
+    pink: "bg-pink-50 text-pink-700 border-pink-200",
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    rose: "bg-rose-50 text-rose-700 border-rose-200",
+    slate: "bg-slate-50 text-slate-700 border-slate-200"
   };
 
   return (
-    <span className={`px-3 py-1 text-[9px] lg:text-[10px] uppercase font-black tracking-widest rounded-lg border flex-shrink-0 ${colors[color]} ${className}`}>
+    <span className={`px-3 py-1 text-[10px] uppercase font-bold tracking-widest rounded-full border flex-shrink-0 ${colors[color]} ${className}`}>
       {children}
     </span>
   );
 };
 
 export const SectionTitle: React.FC<{ children: React.ReactNode; mono?: boolean }> = ({ children, mono = true }) => (
-  <h3 className={`${mono ? 'font-mono text-[9px]' : 'text-[10px]'} uppercase text-slate-500 tracking-[0.3em] font-black mb-3`}>
+  <h3 className={`${mono ? 'font-mono text-[10px]' : 'text-[11px]'} uppercase text-slate-500 tracking-[0.2em] font-bold mb-4`}>
     {children}
   </h3>
 );

@@ -6,27 +6,34 @@
     <title>Nexus IQ | Neural Trivia Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="/manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --nexus-primary: #00f2ff;
-            --nexus-secondary: #7000ff;
-            --nexus-accent: #ff00c8;
-            --bg-deep: #010409;
-            --glass-bg: rgba(10, 15, 25, 0.7);
+            --nexus-primary: #00b4d8;
+            --nexus-secondary: #4361ee;
+            --nexus-accent: #f72585;
+            --bg-deep: #f8f9fa;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --text-main: #1a1a1a;
+            --text-muted: #6c757d;
         }
         
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            scrollbar-width: none;
+        }
+
+        *::-webkit-scrollbar {
+            display: none;
         }
 
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             background: var(--bg-deep);
-            color: #f8fafc;
+            color: var(--text-main);
             margin: 0;
-            overflow: hidden; /* Prevent body scroll, handle inside root */
+            overflow: hidden;
             -webkit-font-smoothing: antialiased;
             height: 100vh;
             height: 100dvh;
@@ -47,38 +54,23 @@
 
         .glass {
             background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.5);
-        }
-
-        .cyber-border {
-            border: 1px solid rgba(0, 242, 255, 0.2);
-            box-shadow: inset 0 0 15px rgba(0, 242, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .nexus-gradient-text {
-            background: linear-gradient(135deg, #00f2ff, #7000ff, #ff00c8);
+            background: linear-gradient(135deg, var(--nexus-primary), var(--nexus-secondary), var(--nexus-accent));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-size: 200% 200%;
-            animation: gradient-shift 5s ease infinite;
+            animation: gradient-shift 8s ease infinite;
         }
 
         @keyframes gradient-shift {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
-        }
-
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 5px rgba(0, 242, 255, 0.2); }
-            50% { box-shadow: 0 0 20px rgba(0, 242, 255, 0.4); }
-        }
-
-        .active-pulse {
-            animation: pulse-glow 3s infinite;
         }
 
         .grid-bg {
@@ -88,37 +80,33 @@
             width: 100%;
             height: 100%;
             background-image: 
-                linear-gradient(rgba(0, 242, 255, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 242, 255, 0.02) 1px, transparent 1px);
-            background-size: 30px 30px;
+                radial-gradient(circle at 2px 2px, rgba(0, 0, 0, 0.03) 1px, transparent 0);
+            background-size: 24px 24px;
             z-index: -1;
             pointer-events: none;
         }
 
-        /* Ambient Orbs */
-        .orb {
+        /* Ambient Glows */
+        .glow {
             position: fixed;
-            width: 50vw;
-            height: 50vw;
+            width: 80vw;
+            height: 80vw;
             border-radius: 50%;
-            filter: blur(120px);
+            filter: blur(100px);
             z-index: -2;
-            opacity: 0.15;
+            opacity: 0.05;
             pointer-events: none;
         }
 
-        .orb-1 { top: -10%; left: -10%; background: var(--nexus-secondary); }
-        .orb-2 { bottom: -10%; right: -10%; background: var(--nexus-primary); }
+        .glow-1 { top: -20%; left: -20%; background: var(--nexus-secondary); }
+        .glow-2 { bottom: -20%; right: -20%; background: var(--nexus-primary); }
 
-        ::-webkit-scrollbar {
-            width: 4px;
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
     </style>
 <script type="importmap">
@@ -135,8 +123,8 @@
 </head>
 <body>
     <div class="grid-bg"></div>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>
