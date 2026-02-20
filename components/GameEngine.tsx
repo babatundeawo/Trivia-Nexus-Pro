@@ -222,8 +222,8 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
   const progress = ((currentIndex + 1) / (settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length)) * 100;
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-12 relative overflow-hidden">
-      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-12 gap-6 h-full max-h-[900px]">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-12 relative">
+      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-12 gap-6">
         
         {/* Left Column: HUD & Question */}
         <div className="md:col-span-8 flex flex-col gap-6">

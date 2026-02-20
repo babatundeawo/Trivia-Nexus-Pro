@@ -356,14 +356,14 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col relative bg-[#f8f9fa] overflow-hidden selection:bg-cyan-100">
+    <div className="min-h-screen w-full flex flex-col relative bg-[#f8f9fa] overflow-x-hidden selection:bg-cyan-100">
       {/* Background Elements */}
       <div className="grid-bg"></div>
       <div className="glow glow-1"></div>
       <div className="glow glow-2"></div>
       
       {/* Main Content */}
-      <main className="flex-1 relative z-10 overflow-hidden flex flex-col">
+      <main className="flex-1 relative z-10 flex flex-col">
         <AnimatePresence mode="wait">
           {renderScreen()}
         </AnimatePresence>
