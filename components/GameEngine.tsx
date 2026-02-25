@@ -50,19 +50,21 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
     const isTimedMode = [GameMode.LIGHTNING, GameMode.GAUNTLET].includes(settings.mode);
     if (isTimedMode) {
       timerRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            handleTimeout();
-            return 0;
-          }
-          return prev - 1;
-        });
+        setTimeLeft(prev => Math.max(0, prev - 1));
       }, 1000);
       return () => {
         if (timerRef.current) clearInterval(timerRef.current);
       };
     }
   }, [settings.mode]);
+
+  // Handle timeout side effect separately to avoid updating parent state during render/state-update
+  useEffect(() => {
+    const isTimedMode = [GameMode.LIGHTNING, GameMode.GAUNTLET].includes(settings.mode);
+    if (isTimedMode && timeLeft === 0 && selectedAnswer === null && !showExplanation) {
+      handleTimeout();
+    }
+  }, [timeLeft, settings.mode, selectedAnswer, showExplanation]);
 
   const handleTimeout = () => {
     if (settings.mode === GameMode.GAUNTLET) {
@@ -222,30 +224,30 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
   const progress = ((currentIndex + 1) / (settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length)) * 100;
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-12 relative">
-      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-12 gap-6">
+    <div className="flex-1 h-full flex flex-col items-center justify-center p-3 md:p-12 relative overflow-hidden">
+      <div className="max-w-6xl w-full flex flex-col md:grid md:grid-cols-12 gap-4 md:gap-6 h-full overflow-hidden">
         
         {/* Left Column: HUD & Question */}
-        <div className="md:col-span-8 flex flex-col gap-6">
-          {/* HUD Bento */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
-              <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">Node</span>
-              <span className="text-xl font-black text-slate-900">{currentIndex + 1} / {settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length}</span>
+        <div className="md:col-span-8 flex flex-col gap-3 md:gap-6 overflow-hidden">
+          {/* HUD Bento - Compact on mobile */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 shrink-0">
+            <Card className="p-2 md:p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
+              <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase mb-0.5">Node</span>
+              <span className="text-sm md:text-xl font-black text-slate-900 leading-none">{currentIndex + 1} / {settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length}</span>
             </Card>
-            <Card className="p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase mb-1">Score</span>
-              <span className="text-xl font-black text-slate-900">₦{score.toLocaleString()}</span>
+            <Card className="p-2 md:p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
+              <span className="text-[8px] md:text-[10px] font-bold text-emerald-400 uppercase mb-0.5">Score</span>
+              <span className="text-sm md:text-xl font-black text-slate-900 leading-none">₦{score.toLocaleString()}</span>
             </Card>
             {(settings.mode === GameMode.LIGHTNING || settings.mode === GameMode.GAUNTLET) && (
-              <Card className="p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
-                <span className="text-[10px] font-bold text-pink-500 uppercase mb-1">Time</span>
-                <span className={`text-xl font-black ${timeLeft < 10 ? 'text-rose-600 animate-pulse' : 'text-pink-600'}`}>{timeLeft}s</span>
+              <Card className="p-2 md:p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
+                <span className="text-[8px] md:text-[10px] font-bold text-pink-500 uppercase mb-0.5">Time</span>
+                <span className={`text-sm md:text-xl font-black leading-none ${timeLeft < 10 ? 'text-rose-600 animate-pulse' : 'text-pink-600'}`}>{timeLeft}s</span>
               </Card>
             )}
-            <Card className="p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
-              <span className="text-[10px] font-bold text-cyan-500 uppercase mb-1">Progress</span>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+            <Card className="p-2 md:p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
+              <span className="text-[8px] md:text-[10px] font-bold text-cyan-500 uppercase mb-0.5">Sync</span>
+              <div className="h-1 md:h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
                 <motion.div 
                   className="h-full bg-cyan-500" 
                   animate={{ width: `${progress}%` }}
@@ -254,8 +256,8 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
             </Card>
           </div>
 
-          {/* Question Bento */}
-          <Card className="flex-1 flex flex-col justify-center items-center text-center p-8 md:p-16 bg-white border-slate-100 shadow-sm relative overflow-hidden">
+          {/* Question Bento - Flexible but contained */}
+          <Card className="flex-1 flex flex-col justify-center items-center text-center p-4 md:p-16 bg-white border-slate-100 shadow-sm relative overflow-hidden min-h-0">
             <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
                <motion.div 
                  className="h-full bg-cyan-400" 
@@ -265,20 +267,20 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
             <AnimatePresence mode="wait">
               <motion.div 
                 key={currentIndex}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="w-full"
+                exit={{ opacity: 0, y: -10 }}
+                className="w-full h-full flex flex-col justify-center overflow-y-auto no-scrollbar"
               >
-                <Badge color="purple" className="mb-6 mx-auto">Sector: {currentQuestion.subject}</Badge>
-                <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-[1.1] max-w-3xl mx-auto tracking-tight">
+                <Badge color="purple" className="mb-3 md:mb-6 mx-auto shrink-0">Sector: {currentQuestion.subject}</Badge>
+                <h2 className="text-xl md:text-5xl font-black text-slate-900 leading-tight md:leading-[1.1] max-w-3xl mx-auto tracking-tight px-2">
                   {currentQuestion.text}
                 </h2>
                 {expertRecommendation && (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="mt-8 bg-cyan-50 border border-cyan-100 rounded-2xl p-4 font-mono text-xs text-cyan-700 max-w-md mx-auto"
+                    className="mt-4 md:mt-8 bg-cyan-50 border border-cyan-100 rounded-xl md:rounded-2xl p-3 md:p-4 font-mono text-[10px] md:text-xs text-cyan-700 max-w-md mx-auto shrink-0"
                   >
                     {expertRecommendation}
                   </motion.div>
@@ -289,9 +291,9 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
         </div>
 
         {/* Right Column: Options & Lifelines */}
-        <div className="md:col-span-4 flex flex-col gap-6">
-          {/* Options Bento */}
-          <div className="flex-1 grid grid-cols-1 gap-3">
+        <div className="md:col-span-4 flex flex-col gap-3 md:gap-6 overflow-hidden min-h-0">
+          {/* Options Bento - Scrollable if needed but compact */}
+          <div className="flex-1 grid grid-cols-1 gap-2 md:gap-3 overflow-y-auto no-scrollbar py-1">
             {currentQuestion.options.map((opt, i) => {
               const isCorrect = i === currentQuestion.correctAnswerIndex;
               const isSelected = i === selectedAnswer;
@@ -312,28 +314,28 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
                   whileTap={{ scale: 0.98 }}
                   disabled={selectedAnswer !== null || isDisabled}
                   onClick={() => handleAnswer(i)}
-                  className={`relative p-6 rounded-[1.5rem] border-2 transition-all duration-300 flex items-center gap-5 text-left group ${styles}`}
+                  className={`relative p-3 md:p-6 rounded-xl md:rounded-[1.5rem] border-2 transition-all duration-300 flex items-center gap-3 md:gap-5 text-left group min-h-[56px] md:min-h-0 ${styles}`}
                 >
-                  <span className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-sm border-2 transition-colors ${isSelected ? 'border-current' : 'border-slate-100 text-cyan-600 group-hover:border-cyan-200'}`}>
+                  <span className={`w-8 h-8 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-lg md:rounded-xl font-black text-xs md:text-sm border-2 transition-colors ${isSelected ? 'border-current' : 'border-slate-100 text-cyan-600 group-hover:border-cyan-200'}`}>
                     {String.fromCharCode(65 + i)}
                   </span>
-                  <span className="flex-1 font-bold text-base leading-snug">{opt}</span>
-                  {pollResults && <span className="text-xs font-mono font-black text-cyan-600">{pollResults[i]}%</span>}
+                  <span className="flex-1 font-bold text-sm md:text-base leading-snug">{opt}</span>
+                  {pollResults && <span className="text-[10px] md:text-xs font-mono font-black text-cyan-600">{pollResults[i]}%</span>}
                 </motion.button>
               );
             })}
           </div>
 
           {/* Lifelines & Actions Bento */}
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-2 md:gap-4 shrink-0">
             {settings.mode === GameMode.MILLIONAIRE && !showExplanation && (
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 md:gap-3">
                 {(['fiftyFifty', 'audiencePoll', 'expertIntel'] as const).map(l => (
                   <button
                     key={l}
                     disabled={!lifelines[l] || selectedAnswer !== null}
                     onClick={() => useLifeline(l)}
-                    className={`py-4 rounded-2xl border-2 text-[10px] font-black uppercase transition-all ${
+                    className={`py-2 md:py-4 rounded-xl md:rounded-2xl border-2 text-[8px] md:text-[10px] font-black uppercase transition-all ${
                       lifelines[l] ? 'border-cyan-400 text-cyan-700 bg-cyan-50 shadow-sm hover:scale-105' : 'border-slate-50 text-slate-200'
                     }`}
                   >
@@ -343,10 +345,10 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
               </div>
             )}
             
-            <div className="flex gap-3">
-              <Button onClick={onAbort} variant="ghost" className="flex-1 py-5 text-xs">Abort</Button>
+            <div className="flex gap-2 md:gap-3">
+              <Button onClick={onAbort} variant="ghost" className="flex-1 py-3 md:py-5 text-[10px] md:text-xs">Abort</Button>
               {showExplanation && (
-                <Button onClick={nextQuestion} className="flex-[2] py-5 text-base" variant="primary">
+                <Button onClick={nextQuestion} className="flex-[2] py-3 md:py-5 text-sm md:text-base" variant="primary">
                   {currentIndex === questions.length - 1 ? "Finish" : "Next Node"}
                 </Button>
               )}
