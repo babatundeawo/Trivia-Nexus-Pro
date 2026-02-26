@@ -34,17 +34,26 @@ const App: React.FC = () => {
   
   const [loadProgress, setLoadProgress] = useState(0);
   const [statusIdx, setStatusIdx] = useState(0);
+  const [isPulseActive, setIsPulseActive] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   useEffect(() => {
     localStorage.setItem('nexus_stats', JSON.stringify(stats));
   }, [stats]);
 
+  useEffect(() => {
+    audioEngine.setEnabled(soundEnabled);
+  }, [soundEnabled]);
+
   const startGame = async () => {
     setScreen(Screen.LOADING);
     setLoadProgress(0);
     setStatusIdx(0);
+    setIsPulseActive(true);
     audioEngine.playStart();
     
+    setTimeout(() => setIsPulseActive(false), 2000);
+
     const progressInterval = setInterval(() => {
       setLoadProgress(p => Math.min(99, p + (Math.random() * 8)));
       setStatusIdx(i => (i + 1) % LOADING_TELEMETRY.length);
@@ -77,11 +86,11 @@ const App: React.FC = () => {
     }
   };
 
-  const handleGameOver = (finalScore: number, total: number, success: boolean, teamResults?: Team[]) => {
+  const handleGameOver = (finalScore: number, correct: number, total: number, success: boolean, teamResults?: Team[]) => {
     setGameResult({ score: finalScore, total, success, teamResults });
     setStats(prev => {
       const newTotal = prev.totalQuestions + total;
-      const newCorrect = prev.correctAnswers + (settings.mode === GameMode.TEAM_BATTLE ? 0 : (success ? total : 0));
+      const newCorrect = prev.correctAnswers + correct;
       return {
         ...prev,
         apexScore: Math.max(prev.apexScore, finalScore),
@@ -101,46 +110,45 @@ const App: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 flex flex-col items-center justify-center p-6 md:p-12"
+            className="flex-1 flex flex-col items-center justify-center p-8 md:p-12 max-w-lg mx-auto w-full"
           >
-            <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
-              {/* Hero Section */}
-              <div className="md:col-span-8 flex flex-col justify-center p-8 md:p-16 rounded-[2.5rem] bg-white border border-slate-200 shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-50 rounded-full -mr-32 -mt-32 blur-3xl opacity-50 group-hover:opacity-80 transition-opacity"></div>
-                <Badge color="cyan" className="w-fit mb-6">Neural Protocol Established</Badge>
-                <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] mb-6 text-slate-900">
-                  NEXUS <span className="nexus-gradient-text">IQ</span>
+            <div className="w-full space-y-12 text-center">
+              <div className="space-y-4">
+                <Badge className="mx-auto">Version 2.0</Badge>
+                <h1 className="text-7xl md:text-8xl font-light tracking-tight text-neutral-900">
+                  Nexus
                 </h1>
-                <p className="text-slate-500 font-medium text-sm md:text-lg max-w-md leading-relaxed">
-                  The next generation of cyber-intelligence trivia. Sync your neural core and dominate the sectors.
+                <p className="text-neutral-400 font-medium text-sm max-w-xs mx-auto leading-relaxed">
+                  A minimalist intelligence protocol designed for the modern mind.
                 </p>
-                <div className="mt-10 flex flex-wrap gap-4">
-                  <Button onClick={() => setScreen(Screen.SETTINGS)} className="px-10 py-5 text-base" variant="primary">
-                    Start Protocol
-                  </Button>
-                  <Button variant="ghost" onClick={() => setScreen(Screen.STATS)} className="px-10 py-5 text-base">
-                    Archives
-                  </Button>
+              </div>
+
+              <div className="space-y-4 w-full">
+                <Button onClick={() => setScreen(Screen.SETTINGS)} className="w-full" variant="primary">
+                  Begin
+                </Button>
+                <Button variant="ghost" onClick={() => setScreen(Screen.STATS)} className="w-full">
+                  Archives
+                </Button>
+              </div>
+
+              <div className="pt-8 flex justify-center gap-8">
+                <div className="text-center">
+                  <div className="text-xl font-medium text-neutral-900">₦{stats.apexScore.toLocaleString()}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-neutral-400 mt-1">Apex</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-medium text-neutral-900">{stats.accuracy}%</div>
+                  <div className="text-[10px] uppercase tracking-widest text-neutral-400 mt-1">Accuracy</div>
                 </div>
               </div>
 
-              {/* Stats Bento Grid */}
-              <div className="md:col-span-4 grid grid-cols-2 md:grid-cols-1 gap-4 md:gap-6">
-                <Card className="flex flex-col justify-between bg-white border-slate-200 shadow-sm p-8">
-                  <SectionTitle>Apex Node</SectionTitle>
-                  <div className="flex flex-col">
-                    <span className="text-4xl font-black text-cyan-600 tracking-tighter">₦{stats.apexScore.toLocaleString()}</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase mt-1">Highest Yield</span>
-                  </div>
-                </Card>
-                <Card className="flex flex-col justify-between bg-white border-slate-200 shadow-sm p-8">
-                  <SectionTitle>Accuracy</SectionTitle>
-                  <div className="flex flex-col">
-                    <span className="text-4xl font-black text-pink-600 tracking-tighter">{stats.accuracy}%</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase mt-1">Neural Precision</span>
-                  </div>
-                </Card>
-              </div>
+              <button 
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className="text-neutral-300 hover:text-neutral-900 transition-colors text-xs uppercase tracking-widest font-medium"
+              >
+                {soundEnabled ? 'Audio On' : 'Audio Off'}
+              </button>
             </div>
           </motion.div>
         );
@@ -148,50 +156,40 @@ const App: React.FC = () => {
       case Screen.SETTINGS:
         return (
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 overflow-y-auto no-scrollbar"
+            exit={{ opacity: 0, y: -10 }}
+            className="flex-1 flex flex-col p-8 md:p-12 max-w-lg mx-auto w-full overflow-y-auto no-scrollbar"
           >
-            <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-12 gap-6">
-              {/* Header Info */}
-              <div className="md:col-span-12 mb-4">
-                <Badge color="purple" className="mb-4">Configuration</Badge>
-                <h2 className="text-5xl md:text-7xl font-black text-slate-900 uppercase tracking-tighter leading-none">System Link</h2>
+            <div className="space-y-12 pb-12">
+              <div className="space-y-2">
+                <Badge>Configure</Badge>
+                <h2 className="text-4xl font-light tracking-tight text-neutral-900">System Link</h2>
               </div>
 
-              {/* Mode Selection - Bento */}
-              <div className="md:col-span-8 space-y-4">
-                <SectionTitle>Deployment Mode</SectionTitle>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="space-y-6">
+                <SectionTitle>Mode</SectionTitle>
+                <div className="grid grid-cols-1 gap-3">
                   {[GameMode.WIPEOUT, GameMode.MILLIONAIRE, GameMode.TEAM_BATTLE, GameMode.LIGHTNING, GameMode.GAUNTLET, GameMode.CATEGORY_KINGS].map(m => (
                     <button 
                       key={m}
                       onClick={() => setSettings(s => ({ ...s, mode: m }))}
-                      className={`p-6 rounded-[2rem] border-2 transition-all text-left group ${settings.mode === m ? 'border-cyan-500 bg-cyan-50 shadow-md scale-[1.02]' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+                      className={`p-6 rounded-3xl border transition-all text-left flex justify-between items-center ${settings.mode === m ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-100 bg-neutral-50 text-neutral-900 hover:border-neutral-200'}`}
                     >
-                      <div className={`font-black text-xs uppercase mb-2 ${settings.mode === m ? 'text-cyan-700' : 'text-slate-400'}`}>{m.replace('_', ' ')}</div>
-                      <div className="text-[10px] text-slate-500 font-bold leading-tight uppercase">
-                        {m === GameMode.WIPEOUT && "Survival Sequence"}
-                        {m === GameMode.LIGHTNING && "Temporal Pulse"}
-                        {m === GameMode.MILLIONAIRE && "Strategic Ladder"}
-                        {m === GameMode.TEAM_BATTLE && "Squad Interlink"}
-                        {m === GameMode.GAUNTLET && "Final Gauntlet"}
-                        {m === GameMode.CATEGORY_KINGS && "Territory Control"}
-                      </div>
+                      <span className="font-medium text-sm uppercase tracking-wider">{m.replace('_', ' ')}</span>
+                      {settings.mode === m && <span className="text-xs">●</span>}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Config Sidebar */}
-              <div className="md:col-span-4 space-y-6">
+              <div className="space-y-8">
                 <div className="space-y-4">
-                  <SectionTitle>Knowledge Sector</SectionTitle>
+                  <SectionTitle>Sector</SectionTitle>
                   <select 
                     value={settings.subject}
                     onChange={(e) => setSettings(s => ({ ...s, subject: e.target.value }))}
-                    className="w-full bg-white border-2 border-slate-100 rounded-2xl p-5 text-slate-900 font-bold outline-none uppercase text-xs appearance-none cursor-pointer shadow-sm focus:border-cyan-400 transition-colors"
+                    className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-5 text-neutral-900 font-medium outline-none uppercase text-[10px] tracking-widest appearance-none cursor-pointer focus:border-neutral-900 transition-colors"
                   >
                     {SUBJECTS.map(sub => <option key={sub} value={sub}>{sub}</option>)}
                   </select>
@@ -201,16 +199,16 @@ const App: React.FC = () => {
                   <select 
                     value={settings.difficulty}
                     onChange={(e) => setSettings(s => ({ ...s, difficulty: e.target.value as Difficulty }))}
-                    className="w-full bg-white border-2 border-slate-100 rounded-2xl p-5 text-slate-900 font-bold outline-none uppercase text-xs appearance-none cursor-pointer shadow-sm focus:border-cyan-400 transition-colors"
+                    className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-5 text-neutral-900 font-medium outline-none uppercase text-[10px] tracking-widest appearance-none cursor-pointer focus:border-neutral-900 transition-colors"
                   >
                     {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
-                
-                <div className="pt-6 grid grid-cols-2 gap-3">
-                  <Button variant="ghost" onClick={() => setScreen(Screen.MENU)} className="py-5">Back</Button>
-                  <Button onClick={startGame} className="py-5" variant="primary">Establish</Button>
-                </div>
+              </div>
+              
+              <div className="pt-6 space-y-3">
+                <Button onClick={startGame} className="w-full" variant="primary">Establish Link</Button>
+                <Button variant="ghost" onClick={() => setScreen(Screen.MENU)} className="w-full">Cancel</Button>
               </div>
             </div>
           </motion.div>
@@ -223,23 +221,9 @@ const App: React.FC = () => {
             animate={{ opacity: 1 }}
             className="flex-1 flex flex-col items-center justify-center p-8 text-center"
           >
-            <div className="relative w-48 h-48 mb-12">
-               <div className="absolute inset-0 border-[6px] border-slate-200 rounded-full"></div>
-               <motion.div 
-                 animate={{ rotate: 360 }}
-                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                 className="absolute inset-0 border-t-[6px] border-cyan-500 rounded-full"
-               ></motion.div>
-               <div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] tracking-[0.4em] text-cyan-600 font-bold animate-pulse uppercase">UPLINKING</div>
-            </div>
-            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">Neural Sync</h2>
-            <div className="w-full max-w-xs h-1.5 bg-slate-200 rounded-full overflow-hidden mb-6">
-               <motion.div 
-                 className="h-full bg-cyan-500" 
-                 animate={{ width: `${loadProgress}%` }}
-               ></motion.div>
-            </div>
-            <div className="font-mono text-[10px] text-cyan-600 uppercase font-bold tracking-widest h-6">
+            <div className="w-12 h-12 border-2 border-neutral-100 border-t-neutral-900 rounded-full animate-spin mb-8"></div>
+            <h2 className="text-xl font-light tracking-widest text-neutral-900 uppercase">Syncing</h2>
+            <div className="mt-4 text-[10px] text-neutral-400 uppercase tracking-[0.3em] font-medium animate-pulse">
                {LOADING_TELEMETRY[statusIdx]}
             </div>
           </motion.div>
@@ -258,97 +242,85 @@ const App: React.FC = () => {
       case Screen.RESULT:
         return (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex-1 flex flex-col items-center justify-center p-6 text-center"
+            className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-lg mx-auto w-full"
           >
-            <Card className="w-full max-w-md p-8 bg-white border-slate-200 shadow-xl">
-              <Badge color={gameResult?.success ? 'emerald' : 'rose'} className="mx-auto mb-6">Summary</Badge>
-              <h1 className={`text-5xl font-black tracking-tighter uppercase mb-10 ${gameResult?.success ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {gameResult?.success ? 'VERIFIED' : 'BREACH'}
-              </h1>
+            <div className="w-full space-y-12">
+              <div className="space-y-4">
+                <Badge>{gameResult?.success ? 'Protocol Success' : 'Protocol Breach'}</Badge>
+                <h1 className="text-6xl font-light tracking-tight text-neutral-900">
+                  {gameResult?.success ? 'Verified' : 'Failed'}
+                </h1>
+              </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-10">
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                  <SectionTitle>Secured</SectionTitle>
-                  <div className="text-2xl font-black text-slate-900">₦{gameResult?.score.toLocaleString()}</div>
+              <div className="grid grid-cols-2 gap-8 py-8 border-y border-neutral-100">
+                <div className="text-center">
+                  <div className="text-3xl font-light text-neutral-900">₦{gameResult?.score.toLocaleString()}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-neutral-400 mt-2">Secured</div>
                 </div>
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                  <SectionTitle>Efficiency</SectionTitle>
-                  <div className={`text-2xl font-black ${gameResult?.success ? 'text-emerald-600' : 'text-rose-600'}`}>
+                <div className="text-center">
+                  <div className="text-3xl font-light text-neutral-900">
                     {gameResult ? Math.round((gameResult.total > 0 ? (gameResult.score / (gameResult.total * 100)) * 100 : 0)) : 0}%
                   </div>
+                  <div className="text-[10px] uppercase tracking-widest text-neutral-400 mt-2">Efficiency</div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3">
-                <Button onClick={startGame} className="w-full py-5" variant="primary">Re-Link</Button>
-                <Button variant="ghost" onClick={() => setScreen(Screen.MENU)} className="w-full py-4">Main Hub</Button>
+              <div className="space-y-3">
+                <Button onClick={startGame} className="w-full" variant="primary">Restart</Button>
+                <Button variant="ghost" onClick={() => setScreen(Screen.MENU)} className="w-full">Exit to Hub</Button>
               </div>
-            </Card>
+            </div>
           </motion.div>
         );
 
       case Screen.STATS:
         return (
           <motion.div 
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex-1 flex flex-col p-6 overflow-y-auto no-scrollbar"
+            className="flex-1 flex flex-col p-8 md:p-12 max-w-lg mx-auto w-full overflow-y-auto no-scrollbar"
           >
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Archive</h2>
-              <Button variant="ghost" onClick={() => setScreen(Screen.MENU)} className="px-5 py-2 text-[10px]">Back</Button>
+            <div className="flex justify-between items-center mb-12">
+              <h2 className="text-3xl font-light tracking-tight text-neutral-900">Archives</h2>
+              <button onClick={() => setScreen(Screen.MENU)} className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 hover:text-neutral-900">Close</button>
             </div>
             
-            <div className="space-y-6 pb-12">
-              <Card className="p-6 bg-white border-slate-200 shadow-sm">
+            <div className="space-y-12 pb-12">
+              <div className="space-y-8">
                 <SectionTitle>Neural Metrics</SectionTitle>
-                <div className="space-y-6 mt-4">
+                <div className="space-y-10">
                   {[
-                    { label: 'Synced Nodes', val: stats.totalQuestions, color: 'bg-cyan-500', perc: 100 },
-                    { label: 'Accuracy', val: `${stats.accuracy}%`, color: 'bg-emerald-500', perc: stats.accuracy },
-                    { label: 'Peak Capacity', val: `₦${stats.apexScore.toLocaleString()}`, color: 'bg-amber-500', perc: Math.min(100, (stats.apexScore / 10000) * 100) }
+                    { label: 'Synced Nodes', val: stats.totalQuestions },
+                    { label: 'Correct Syncs', val: stats.correctAnswers },
+                    { label: 'Accuracy', val: `${stats.accuracy}%` },
+                    { label: 'Peak Capacity', val: `₦${stats.apexScore.toLocaleString()}` }
                   ].map((s, i) => (
-                    <div key={i}>
-                      <div className="flex justify-between text-[10px] mb-2 font-bold uppercase text-slate-500">
-                        <span>{s.label}</span>
-                        <span className="text-slate-900">{s.val}</span>
-                      </div>
-                      <div className="h-2 bg-slate-100 rounded-full border border-slate-200 overflow-hidden">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${s.perc}%` }}
-                          transition={{ duration: 1, delay: 0.2 }}
-                          className={`h-full rounded-full ${s.color}`}
-                        ></motion.div>
-                      </div>
+                    <div key={i} className="flex justify-between items-end border-b border-neutral-100 pb-4">
+                      <span className="text-[10px] uppercase tracking-widest text-neutral-400 font-semibold">{s.label}</span>
+                      <span className="text-2xl font-light text-neutral-900">{s.val}</span>
                     </div>
                   ))}
                 </div>
-              </Card>
+              </div>
 
-              <Card className="p-6 bg-white border-slate-200 shadow-sm">
-                <SectionTitle>Neural Landmarks</SectionTitle>
-                <div className="grid grid-cols-1 gap-3 mt-4">
+              <div className="space-y-8">
+                <SectionTitle>Landmarks</SectionTitle>
+                <div className="grid grid-cols-1 gap-4">
                   {[
-                    { name: 'Initial Uplink', desc: 'Secure first data node', unlock: stats.totalQuestions > 0 },
-                    { name: 'Node Specialist', desc: 'Sync 500 nodes', unlock: stats.totalQuestions >= 500 },
-                    { name: 'Pure Precision', desc: '> 95% Accuracy', unlock: stats.accuracy >= 95 && stats.totalQuestions >= 30 },
-                    { name: 'Elite Hub', desc: 'Secure ₦10,000 node', unlock: stats.apexScore >= 10000 },
+                    { name: 'Initial Uplink', unlock: stats.totalQuestions > 0 },
+                    { name: 'Node Specialist', unlock: stats.totalQuestions >= 500 },
+                    { name: 'Pure Precision', unlock: stats.accuracy >= 95 && stats.totalQuestions >= 30 },
+                    { name: 'Elite Hub', unlock: stats.apexScore >= 10000 },
                   ].map((a, i) => (
-                    <div key={i} className={`p-4 rounded-2xl border flex items-center gap-4 transition-all ${a.unlock ? 'border-cyan-200 bg-cyan-50' : 'border-slate-100 opacity-40 grayscale'}`}>
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${a.unlock ? 'bg-cyan-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                        {a.unlock ? '◈' : '◇'}
-                      </div>
-                      <div>
-                        <div className="font-bold text-slate-900 text-xs uppercase tracking-tight">{a.name}</div>
-                        <div className="text-[9px] text-slate-500 font-mono uppercase mt-0.5">{a.desc}</div>
-                      </div>
+                    <div key={i} className={`flex items-center justify-between p-6 rounded-3xl border transition-all ${a.unlock ? 'border-neutral-900 bg-white' : 'border-neutral-100 opacity-30'}`}>
+                      <span className="text-xs font-medium uppercase tracking-wider text-neutral-900">{a.name}</span>
+                      {a.unlock ? <span className="text-neutral-900">✓</span> : <span className="text-neutral-300">○</span>}
                     </div>
                   ))}
                 </div>
-              </Card>
+              </div>
             </div>
           </motion.div>
         );
@@ -356,11 +328,9 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col relative bg-[#f8f9fa] overflow-hidden selection:bg-cyan-100">
-      {/* Background Elements */}
-      <div className="grid-bg"></div>
-      <div className="glow glow-1"></div>
-      <div className="glow glow-2"></div>
+    <div className="h-screen w-full flex flex-col relative bg-white overflow-hidden selection:bg-neutral-100">
+      {/* Background Elements - Minimalist */}
+      <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:40px_40px] opacity-[0.15]"></div>
       
       {/* Main Content */}
       <main className="flex-1 relative z-10 overflow-hidden flex flex-col">
@@ -368,14 +338,6 @@ const App: React.FC = () => {
           {renderScreen()}
         </AnimatePresence>
       </main>
-
-      {/* Floating Brand Mark - Subtle */}
-      <div className="fixed top-6 left-6 z-50 pointer-events-none opacity-20 hidden md:block">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center font-black text-sm text-white italic">N</div>
-          <span className="font-black text-sm tracking-tighter text-slate-900 uppercase">NEXUS IQ</span>
-        </div>
-      </div>
     </div>
   );
 };

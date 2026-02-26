@@ -8,7 +8,7 @@ import { audioEngine } from '../services/audio';
 interface Props {
   settings: GameSettings;
   questions: Question[];
-  onGameOver: (score: number, total: number, success: boolean, teamResults?: Team[]) => void;
+  onGameOver: (score: number, correct: number, total: number, success: boolean, teamResults?: Team[]) => void;
   onAbort: () => void;
 }
 
@@ -18,7 +18,10 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
   const [isTense, setIsTense] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [score, setScore] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [lastQuestionStartTime, setLastQuestionStartTime] = useState(Date.now());
+  const [streak, setStreak] = useState(0);
+  const [neuralLoad, setNeuralLoad] = useState(1); // 1 to 3, dynamic difficulty
 
   // Game States
   const [activeBank, setActiveBank] = useState(0); 
@@ -37,6 +40,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
   const [disabledOptions, setDisabledOptions] = useState<number[]>([]);
   const [pollResults, setPollResults] = useState<number[] | null>(null);
   const [expertRecommendation, setExpertRecommendation] = useState<string | null>(null);
+  const [lifelineToConfirm, setLifelineToConfirm] = useState<keyof Lifelines | null>(null);
 
   // Category Kings Specific
   const [conqueredCategories, setConqueredCategories] = useState<string[]>([]);
@@ -45,6 +49,18 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentQuestion = questions[currentIndex];
+
+  useEffect(() => {
+    audioEngine.startAmbient();
+    return () => {
+      audioEngine.stopAmbient();
+    };
+  }, []);
+
+  useEffect(() => {
+    const progress = (currentIndex + 1) / questions.length;
+    audioEngine.setAmbientIntensity(progress);
+  }, [currentIndex, questions.length]);
 
   useEffect(() => {
     const isTimedMode = [GameMode.LIGHTNING, GameMode.GAUNTLET].includes(settings.mode);
@@ -68,9 +84,9 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
 
   const handleTimeout = () => {
     if (settings.mode === GameMode.GAUNTLET) {
-      onGameOver(score, currentIndex, false);
+      onGameOver(score, correctCount, currentIndex + 1, false);
     } else {
-      onGameOver(score, currentIndex, true, settings.mode === GameMode.TEAM_BATTLE ? teams : undefined);
+      onGameOver(score, correctCount, currentIndex + 1, true, settings.mode === GameMode.TEAM_BATTLE ? teams : undefined);
     }
   };
 
@@ -86,9 +102,17 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
       setIsTense(false);
       if (isCorrect) {
         audioEngine.playCorrect();
+        setCorrectCount(prev => prev + 1);
+        setStreak(prev => {
+          const next = prev + 1;
+          if (next >= 3) setNeuralLoad(Math.min(3, neuralLoad + 1));
+          return next;
+        });
         processCorrectAnswer(responseTime);
       } else {
         audioEngine.playWrong();
+        setStreak(0);
+        setNeuralLoad(1);
         processWrongAnswer(responseTime);
       }
       setShowExplanation(true);
@@ -96,9 +120,10 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
   };
 
   const processCorrectAnswer = (responseTime: number) => {
+    const multiplier = neuralLoad;
     switch (settings.mode) {
       case GameMode.WIPEOUT:
-        const gain = WIPEOUT_PRIZES[wipeoutStreak] || WIPEOUT_PRIZES[WIPEOUT_PRIZES.length - 1];
+        const gain = (WIPEOUT_PRIZES[wipeoutStreak] || WIPEOUT_PRIZES[WIPEOUT_PRIZES.length - 1]) * multiplier;
         setActiveBank(prev => prev + gain);
         setWipeoutStreak(prev => prev + 1);
         setScore(prev => prev + gain);
@@ -117,7 +142,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
         break;
       case GameMode.LIGHTNING:
       case GameMode.GAUNTLET:
-        setScore(prev => prev + 100);
+        setScore(prev => prev + (100 * multiplier));
         if (settings.mode === GameMode.GAUNTLET && ((currentIndex + 1) % 3 === 0)) setTimeLeft(prev => Math.min(60, prev + 5));
         break;
       case GameMode.CATEGORY_KINGS:
@@ -135,7 +160,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
         }
         break;
       default:
-        setScore(prev => prev + 100);
+        setScore(prev => prev + (100 * multiplier));
     }
   };
 
@@ -143,7 +168,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
     switch (settings.mode) {
       case GameMode.WIPEOUT:
       case GameMode.GAUNTLET:
-        onGameOver(score, currentIndex + 1, false);
+        onGameOver(score, correctCount, currentIndex + 1, false);
         break;
       case GameMode.TEAM_BATTLE:
         setTeams(prev => {
@@ -166,12 +191,12 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
   const nextQuestion = () => {
     if (settings.mode === GameMode.MILLIONAIRE && selectedAnswer !== currentQuestion.correctAnswerIndex) {
       const lastSafety = currentIndex > 9 ? MILLIONAIRE_LADDER[9] : (currentIndex > 4 ? MILLIONAIRE_LADDER[4] : 0);
-      onGameOver(lastSafety, currentIndex + 1, false);
+      onGameOver(lastSafety, correctCount, currentIndex + 1, false);
       return;
     }
 
     if (settings.mode === GameMode.CATEGORY_KINGS && conqueredCategories.length === 6) {
-      onGameOver(score, currentIndex + 1, true);
+      onGameOver(score, correctCount, currentIndex + 1, true);
       return;
     }
 
@@ -181,7 +206,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
 
     const totalNeeded = settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length;
     if (currentIndex >= totalNeeded - 1) {
-      onGameOver(score, currentIndex + 1, true, settings.mode === GameMode.TEAM_BATTLE ? teams : undefined);
+      onGameOver(score, correctCount, currentIndex + 1, true, settings.mode === GameMode.TEAM_BATTLE ? teams : undefined);
       return;
     }
 
@@ -197,7 +222,18 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
 
   const useLifeline = (type: keyof Lifelines) => {
     if (!lifelines[type] || selectedAnswer !== null) return;
+    
+    if (type === 'fiftyFifty' || type === 'expertIntel') {
+      setLifelineToConfirm(type);
+      return;
+    }
+    
+    executeLifeline(type);
+  };
+
+  const executeLifeline = (type: keyof Lifelines) => {
     setLifelines(prev => ({ ...prev, [type]: false }));
+    setLifelineToConfirm(null);
     audioEngine.playClick();
 
     if (type === 'fiftyFifty') {
@@ -224,165 +260,219 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
   const progress = ((currentIndex + 1) / (settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length)) * 100;
 
   return (
-    <div className="flex-1 h-full flex flex-col items-center justify-center p-3 md:p-12 relative overflow-hidden">
-      <div className="max-w-6xl w-full flex flex-col md:grid md:grid-cols-12 gap-4 md:gap-6 h-full overflow-hidden">
-        
-        {/* Left Column: HUD & Question */}
-        <div className="md:col-span-8 flex flex-col gap-3 md:gap-6 overflow-hidden">
-          {/* HUD Bento - Compact on mobile */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 shrink-0">
-            <Card className="p-2 md:p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
-              <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase mb-0.5">Node</span>
-              <span className="text-sm md:text-xl font-black text-slate-900 leading-none">{currentIndex + 1} / {settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length}</span>
-            </Card>
-            <Card className="p-2 md:p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
-              <span className="text-[8px] md:text-[10px] font-bold text-emerald-400 uppercase mb-0.5">Score</span>
-              <span className="text-sm md:text-xl font-black text-slate-900 leading-none">₦{score.toLocaleString()}</span>
-            </Card>
-            {(settings.mode === GameMode.LIGHTNING || settings.mode === GameMode.GAUNTLET) && (
-              <Card className="p-2 md:p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
-                <span className="text-[8px] md:text-[10px] font-bold text-pink-500 uppercase mb-0.5">Time</span>
-                <span className={`text-sm md:text-xl font-black leading-none ${timeLeft < 10 ? 'text-rose-600 animate-pulse' : 'text-pink-600'}`}>{timeLeft}s</span>
-              </Card>
-            )}
-            <Card className="p-2 md:p-4 flex flex-col justify-center bg-white border-slate-100 shadow-sm">
-              <span className="text-[8px] md:text-[10px] font-bold text-cyan-500 uppercase mb-0.5">Sync</span>
-              <div className="h-1 md:h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
-                <motion.div 
-                  className="h-full bg-cyan-500" 
-                  animate={{ width: `${progress}%` }}
-                ></motion.div>
-              </div>
-            </Card>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex-1 flex flex-col bg-white relative overflow-hidden"
+    >
+      <div className="flex-1 flex flex-col max-w-lg mx-auto w-full p-6 md:p-8 overflow-y-auto no-scrollbar">
+        <div className="flex flex-col h-full space-y-8">
+          
+          {/* Minimalist HUD */}
+          <div className="flex justify-between items-center pt-4">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Node</span>
+              <span className="text-xl font-light text-neutral-900">{currentIndex + 1} / {settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length}</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Yield</span>
+              <span className="text-xl font-light text-neutral-900">₦{score.toLocaleString()}</span>
+            </div>
           </div>
 
-          {/* Question Bento - Flexible but contained */}
-          <Card className="flex-1 flex flex-col justify-center items-center text-center p-4 md:p-16 bg-white border-slate-100 shadow-sm relative overflow-hidden min-h-0">
-            <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
-               <motion.div 
-                 className="h-full bg-cyan-400" 
-                 animate={{ width: `${progress}%` }}
-               ></motion.div>
+          {/* Neural Load Indicator - Minimal */}
+          <div className="flex gap-1.5">
+            {[1, 2, 3].map(l => (
+              <div key={l} className={`h-0.5 flex-1 transition-all duration-700 ${neuralLoad >= l ? 'bg-neutral-900' : 'bg-neutral-100'}`}></div>
+            ))}
+          </div>
+
+          {/* Progress / Timer */}
+          <div className="w-full h-px bg-neutral-100 relative overflow-hidden">
+            <motion.div 
+              className={`absolute top-0 left-0 h-full ${timeLeft < 10 && [GameMode.LIGHTNING, GameMode.GAUNTLET].includes(settings.mode) ? 'bg-rose-500' : 'bg-neutral-900'}`}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.1 }}
+            ></motion.div>
+          </div>
+
+          {/* Team Battle Scores - Minimal */}
+          {settings.mode === GameMode.TEAM_BATTLE && (
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+              {teams.map((team, idx) => (
+                <div 
+                  key={idx} 
+                  className={`flex-shrink-0 flex flex-col border-b-2 transition-all pb-1 ${currentTeamIdx === idx ? 'border-neutral-900 opacity-100' : 'border-transparent opacity-30'}`}
+                >
+                  <span className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">{team.name}</span>
+                  <span className="text-sm font-medium text-neutral-900">{team.score}</span>
+                </div>
+              ))}
             </div>
-            <AnimatePresence mode="wait">
-              <motion.div 
-                key={currentIndex}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="w-full h-full flex flex-col justify-center overflow-y-auto no-scrollbar"
-              >
-                <Badge color="purple" className="mb-3 md:mb-6 mx-auto shrink-0">Sector: {currentQuestion.subject}</Badge>
-                <h2 className="text-xl md:text-5xl font-black text-slate-900 leading-tight md:leading-[1.1] max-w-3xl mx-auto tracking-tight px-2">
-                  {currentQuestion.text}
-                </h2>
+          )}
+
+          {/* Question Area */}
+          <div className="flex-1 flex flex-col justify-center py-8">
+            <div className="space-y-6">
+              <Badge className="mx-auto">{currentQuestion.subject}</Badge>
+              <h2 className="text-3xl md:text-4xl font-light tracking-tight text-neutral-900 text-center leading-tight">
+                {currentQuestion.text}
+              </h2>
+              <AnimatePresence>
                 {expertRecommendation && (
                   <motion.div 
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="mt-4 md:mt-8 bg-cyan-50 border border-cyan-100 rounded-xl md:rounded-2xl p-3 md:p-4 font-mono text-[10px] md:text-xs text-cyan-700 max-w-md mx-auto shrink-0"
+                    initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                    className="mt-6 p-4 bg-neutral-50 border border-neutral-100 rounded-2xl text-[10px] text-neutral-500 text-center uppercase tracking-widest font-medium"
                   >
                     {expertRecommendation}
                   </motion.div>
                 )}
-              </motion.div>
-            </AnimatePresence>
-          </Card>
-        </div>
+              </AnimatePresence>
+            </div>
+          </div>
 
-        {/* Right Column: Options & Lifelines */}
-        <div className="md:col-span-4 flex flex-col gap-3 md:gap-6 overflow-hidden min-h-0">
-          {/* Options Bento - Scrollable if needed but compact */}
-          <div className="flex-1 grid grid-cols-1 gap-2 md:gap-3 overflow-y-auto no-scrollbar py-1">
-            {currentQuestion.options.map((opt, i) => {
-              const isCorrect = i === currentQuestion.correctAnswerIndex;
-              const isSelected = i === selectedAnswer;
-              const isDisabled = disabledOptions.includes(i);
-              
-              let styles = "border-slate-100 bg-white text-slate-700 shadow-sm hover:border-slate-200";
-              if (isSelected && isTense) styles = "border-amber-400 bg-amber-50 text-amber-700 ring-2 ring-amber-400/20";
-              else if (selectedAnswer !== null) {
-                if (isCorrect) styles = "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-emerald-100 shadow-lg scale-[1.02] z-10";
-                else if (isSelected) styles = "border-rose-500 bg-rose-50 text-rose-700 opacity-50";
-                else styles = "opacity-20 grayscale border-transparent scale-[0.98]";
-              }
-              if (isDisabled) styles = "opacity-0 pointer-events-none";
+          {/* Options Area */}
+          <div className="space-y-3 pb-8">
+            {currentQuestion.options.map((option, idx) => {
+              const isSelected = selectedAnswer === idx;
+              const isCorrect = idx === currentQuestion.correctAnswerIndex;
+              const isWrong = isSelected && !isCorrect;
+              const showResult = selectedAnswer !== null;
 
               return (
-                <motion.button 
-                  key={i}
-                  whileTap={{ scale: 0.98 }}
-                  disabled={selectedAnswer !== null || isDisabled}
-                  onClick={() => handleAnswer(i)}
-                  className={`relative p-3 md:p-6 rounded-xl md:rounded-[1.5rem] border-2 transition-all duration-300 flex items-center gap-3 md:gap-5 text-left group min-h-[56px] md:min-h-0 ${styles}`}
+                <button
+                  key={idx}
+                  disabled={selectedAnswer !== null || disabledOptions.includes(idx)}
+                  onClick={() => handleAnswer(idx)}
+                  className={`w-full p-6 rounded-3xl border text-left transition-all duration-300 flex justify-between items-center group ${
+                    disabledOptions.includes(idx) ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                  } ${
+                    showResult
+                      ? isCorrect
+                        ? 'bg-neutral-900 border-neutral-900 text-white'
+                        : isWrong
+                          ? 'bg-rose-50 border-rose-100 text-rose-600'
+                          : 'bg-white border-neutral-50 text-neutral-200'
+                      : 'bg-neutral-50 border-neutral-50 text-neutral-900 hover:border-neutral-200 active:scale-[0.98]'
+                  }`}
                 >
-                  <span className={`w-8 h-8 md:w-10 md:h-10 shrink-0 flex items-center justify-center rounded-lg md:rounded-xl font-black text-xs md:text-sm border-2 transition-colors ${isSelected ? 'border-current' : 'border-slate-100 text-cyan-600 group-hover:border-cyan-200'}`}>
-                    {String.fromCharCode(65 + i)}
-                  </span>
-                  <span className="flex-1 font-bold text-sm md:text-base leading-snug">{opt}</span>
-                  {pollResults && <span className="text-[10px] md:text-xs font-mono font-black text-cyan-600">{pollResults[i]}%</span>}
-                </motion.button>
+                  <span className="text-sm font-medium">{option}</span>
+                  {showResult && isCorrect && <span className="text-xs">✓</span>}
+                  {showResult && isWrong && <span className="text-xs">✕</span>}
+                  <AnimatePresence>
+                    {pollResults && !showResult && (
+                      <motion.span 
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="text-[10px] font-bold text-neutral-400"
+                      >
+                        {pollResults[idx]}%
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </button>
               );
             })}
           </div>
 
-          {/* Lifelines & Actions Bento */}
-          <div className="grid grid-cols-1 gap-2 md:gap-4 shrink-0">
-            {settings.mode === GameMode.MILLIONAIRE && !showExplanation && (
-              <div className="grid grid-cols-3 gap-2 md:gap-3">
-                {(['fiftyFifty', 'audiencePoll', 'expertIntel'] as const).map(l => (
-                  <button
+          {/* Lifelines - Minimalist */}
+          {settings.mode === GameMode.MILLIONAIRE && (
+            <div className="grid grid-cols-3 gap-3 pb-8">
+              {(['fiftyFifty', 'audiencePoll', 'expertIntel'] as const).map(l => {
+                const isUsed = !lifelines[l];
+                const isAnswering = selectedAnswer !== null;
+                return (
+                  <motion.button
                     key={l}
-                    disabled={!lifelines[l] || selectedAnswer !== null}
+                    whileHover={!isUsed && !isAnswering ? { scale: 1.02 } : {}}
+                    whileTap={!isUsed && !isAnswering ? { scale: 0.98 } : {}}
+                    disabled={isUsed || isAnswering}
                     onClick={() => useLifeline(l)}
-                    className={`py-2 md:py-4 rounded-xl md:rounded-2xl border-2 text-[8px] md:text-[10px] font-black uppercase transition-all ${
-                      lifelines[l] ? 'border-cyan-400 text-cyan-700 bg-cyan-50 shadow-sm hover:scale-105' : 'border-slate-50 text-slate-200'
+                    className={`py-4 rounded-2xl border text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
+                      isUsed 
+                        ? 'border-transparent bg-neutral-50 text-neutral-200 opacity-50' 
+                        : isAnswering
+                          ? 'border-neutral-100 bg-neutral-50 text-neutral-200'
+                          : 'border-neutral-100 bg-white text-neutral-400 hover:border-neutral-900 hover:text-neutral-900'
                     }`}
                   >
                     {l === 'fiftyFifty' ? '50:50' : l === 'audiencePoll' ? 'Poll' : 'Intel'}
-                  </button>
-                ))}
-              </div>
-            )}
-            
-            <div className="flex gap-2 md:gap-3">
-              <Button onClick={onAbort} variant="ghost" className="flex-1 py-3 md:py-5 text-[10px] md:text-xs">Abort</Button>
-              {showExplanation && (
-                <Button onClick={nextQuestion} className="flex-[2] py-3 md:py-5 text-sm md:text-base" variant="primary">
-                  {currentIndex === questions.length - 1 ? "Finish" : "Next Node"}
-                </Button>
-              )}
+                  </motion.button>
+                );
+              })}
             </div>
-          </div>
+          )}
+
+          {/* Explanation / Next Action */}
+          <AnimatePresence>
+            {showExplanation && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6 pb-12"
+              >
+                <div className="p-6 bg-neutral-50 rounded-3xl border border-neutral-100">
+                  <SectionTitle>Insight</SectionTitle>
+                  <p className="text-sm text-neutral-500 leading-relaxed">
+                    {currentQuestion.explanation}
+                  </p>
+                </div>
+                <Button onClick={nextQuestion} className="w-full" variant="primary">
+                  Continue
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      {/* Explanation Overlay - Modern Slide Up */}
+      {/* Abort Button - Subtle */}
+      <button 
+        onClick={onAbort}
+        className="fixed top-6 right-6 text-neutral-300 hover:text-neutral-900 transition-colors text-[10px] font-bold uppercase tracking-widest z-50"
+      >
+        Abort
+      </button>
+
+      {/* Lifeline Confirmation Prompt */}
       <AnimatePresence>
-        {showExplanation && (
+        {lifelineToConfirm && (
           <motion.div 
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            className="fixed inset-x-0 bottom-8 mx-auto max-w-4xl px-6 z-[60]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-8 bg-white/80 backdrop-blur-sm"
           >
-            <Card className="p-8 bg-white/90 backdrop-blur-xl border-slate-200 shadow-2xl flex flex-col md:flex-row items-center gap-8">
-              <div className="flex-1">
-                <Badge color="purple" className="mb-3">Neural Insight</Badge>
-                <p className="text-slate-600 font-medium leading-relaxed italic text-sm md:text-base">
-                  "{currentQuestion.explanation}"
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="max-w-xs w-full bg-white border border-neutral-100 rounded-[2.5rem] p-8 text-center space-y-8 shadow-2xl"
+            >
+              <div className="space-y-2">
+                <Badge>Confirmation</Badge>
+                <h3 className="text-xl font-light tracking-tight text-neutral-900">
+                  Activate {lifelineToConfirm === 'fiftyFifty' ? '50:50' : 'Intel'}?
+                </h3>
+                <p className="text-[10px] text-neutral-400 uppercase tracking-widest leading-relaxed">
+                  This protocol can only be executed once per session.
                 </p>
               </div>
-              <div className="shrink-0 w-full md:w-auto">
-                <Button onClick={nextQuestion} className="w-full md:px-12 py-5" variant="primary">
-                  Continue Sync
+              <div className="space-y-3">
+                <Button onClick={() => executeLifeline(lifelineToConfirm)} className="w-full" variant="primary">
+                  Confirm
+                </Button>
+                <Button onClick={() => setLifelineToConfirm(null)} className="w-full" variant="ghost">
+                  Cancel
                 </Button>
               </div>
-            </Card>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 };
 

@@ -15,14 +15,14 @@ export const Button: React.FC<ButtonProps> = ({
   onClick,
   ...props 
 }) => {
-  const base = "px-6 py-4 rounded-2xl font-bold uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-3 select-none disabled:opacity-40 disabled:cursor-not-allowed text-sm shadow-sm";
+  const base = "px-8 py-5 rounded-full font-medium tracking-tight transition-all duration-300 flex items-center justify-center gap-3 select-none disabled:opacity-30 disabled:cursor-not-allowed text-sm";
   
   const variants = {
-    primary: "bg-[#00b4d8] text-white shadow-cyan-500/20",
-    secondary: "bg-[#4361ee] text-white shadow-blue-500/20",
-    accent: "bg-[#f72585] text-white shadow-pink-500/20",
-    outline: "bg-transparent border border-[#00b4d8] text-[#00b4d8] hover:bg-[#00b4d8]/5",
-    ghost: "bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200"
+    primary: "bg-black text-white hover:bg-neutral-800 active:scale-95",
+    secondary: "bg-neutral-100 text-neutral-900 hover:bg-neutral-200 active:scale-95",
+    accent: "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95",
+    outline: "bg-transparent border border-neutral-200 text-neutral-900 hover:border-neutral-900 active:scale-95",
+    ghost: "bg-transparent text-neutral-500 hover:text-neutral-900 active:scale-95"
   };
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -32,7 +32,6 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <motion.button 
-      whileTap={{ scale: 0.96 }}
       className={`${base} ${variants[variant]} ${className}`}
       onClick={handleClick}
       {...props}
@@ -47,7 +46,7 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string; noP
   className = '', 
   noPadding = false 
 }) => (
-  <div className={`glass rounded-3xl border border-slate-200 ${noPadding ? '' : 'p-6 md:p-8'} ${className}`}>
+  <div className={`bg-white border border-neutral-100 rounded-[2rem] ${noPadding ? '' : 'p-8 md:p-10'} ${className}`}>
     {children}
   </div>
 );
@@ -61,24 +60,15 @@ export const Badge: React.FC<{
   color = 'cyan',
   className = ''
 }) => {
-  const colors = {
-    cyan: "bg-cyan-50 text-cyan-700 border-cyan-200",
-    purple: "bg-purple-50 text-purple-700 border-purple-200",
-    pink: "bg-pink-50 text-pink-700 border-pink-200",
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    rose: "bg-rose-50 text-rose-700 border-rose-200",
-    slate: "bg-slate-50 text-slate-700 border-slate-200"
-  };
-
   return (
-    <span className={`px-3 py-1 text-[10px] uppercase font-bold tracking-widest rounded-full border flex-shrink-0 ${colors[color]} ${className}`}>
+    <span className={`px-4 py-1.5 text-[10px] uppercase font-semibold tracking-widest rounded-full bg-neutral-50 text-neutral-500 border border-neutral-100 flex-shrink-0 ${className}`}>
       {children}
     </span>
   );
 };
 
-export const SectionTitle: React.FC<{ children: React.ReactNode; mono?: boolean }> = ({ children, mono = true }) => (
-  <h3 className={`${mono ? 'font-mono text-[10px]' : 'text-[11px]'} uppercase text-slate-500 tracking-[0.2em] font-bold mb-4`}>
+export const SectionTitle: React.FC<{ children: React.ReactNode; mono?: boolean }> = ({ children, mono = false }) => (
+  <h3 className={`text-[10px] uppercase text-neutral-400 tracking-[0.25em] font-semibold mb-6`}>
     {children}
   </h3>
 );
