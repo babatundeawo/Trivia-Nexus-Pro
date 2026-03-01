@@ -217,6 +217,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
     setPollResults(null);
     setExpertRecommendation(null);
     setLastQuestionStartTime(Date.now());
+    audioEngine.playTransition();
     if (settings.mode === GameMode.TEAM_BATTLE) setCurrentTeamIdx(prev => (prev + 1) % teams.length);
   };
 
@@ -263,34 +264,34 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex-1 flex flex-col bg-white relative overflow-hidden"
+      className="flex-1 flex flex-col bg-transparent relative overflow-hidden h-[100dvh]"
     >
-      <div className="flex-1 flex flex-col max-w-lg mx-auto w-full p-6 md:p-8 overflow-y-auto no-scrollbar">
-        <div className="flex flex-col h-full space-y-8">
+      <div className="flex-1 flex flex-col max-w-lg mx-auto w-full p-6 md:p-8 overflow-hidden">
+        <div className="flex flex-col h-full">
           
           {/* Minimalist HUD */}
-          <div className="flex justify-between items-center pt-4">
+          <div className="flex justify-between items-center pt-2 pb-4 shrink-0">
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Node</span>
-              <span className="text-xl font-light text-neutral-900">{currentIndex + 1} / {settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length}</span>
+              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Node</span>
+              <span className="text-xl font-light text-white">{currentIndex + 1} / {settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length}</span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Yield</span>
-              <span className="text-xl font-light text-neutral-900">₦{score.toLocaleString()}</span>
+              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Yield</span>
+              <span className="text-xl font-light text-white">₦{score.toLocaleString()}</span>
             </div>
           </div>
 
           {/* Neural Load Indicator - Minimal */}
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 shrink-0 mb-4">
             {[1, 2, 3].map(l => (
-              <div key={l} className={`h-0.5 flex-1 transition-all duration-700 ${neuralLoad >= l ? 'bg-neutral-900' : 'bg-neutral-100'}`}></div>
+              <div key={l} className={`h-0.5 flex-1 transition-all duration-700 ${neuralLoad >= l ? 'bg-cyan-500 shadow-[0_0_10px_rgba(0,242,255,0.5)]' : 'bg-white/5'}`}></div>
             ))}
           </div>
 
           {/* Progress / Timer */}
-          <div className="w-full h-px bg-neutral-100 relative overflow-hidden">
+          <div className="w-full h-px bg-white/5 relative overflow-hidden shrink-0 mb-4">
             <motion.div 
-              className={`absolute top-0 left-0 h-full ${timeLeft < 10 && [GameMode.LIGHTNING, GameMode.GAUNTLET].includes(settings.mode) ? 'bg-rose-500' : 'bg-neutral-900'}`}
+              className={`absolute top-0 left-0 h-full ${timeLeft < 10 && [GameMode.LIGHTNING, GameMode.GAUNTLET].includes(settings.mode) ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]'}`}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.1 }}
             ></motion.div>
@@ -298,24 +299,24 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
 
           {/* Team Battle Scores - Minimal */}
           {settings.mode === GameMode.TEAM_BATTLE && (
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 shrink-0">
               {teams.map((team, idx) => (
                 <div 
                   key={idx} 
-                  className={`flex-shrink-0 flex flex-col border-b-2 transition-all pb-1 ${currentTeamIdx === idx ? 'border-neutral-900 opacity-100' : 'border-transparent opacity-30'}`}
+                  className={`flex-shrink-0 flex flex-col border-b-2 transition-all pb-1 ${currentTeamIdx === idx ? 'border-white opacity-100' : 'border-transparent opacity-30'}`}
                 >
-                  <span className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">{team.name}</span>
-                  <span className="text-sm font-medium text-neutral-900">{team.score}</span>
+                  <span className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">{team.name}</span>
+                  <span className="text-sm font-medium text-white">{team.score}</span>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Question Area */}
-          <div className="flex-1 flex flex-col justify-center py-8">
-            <div className="space-y-6">
+          {/* Question Area - Flexible but contained */}
+          <div className="flex-1 flex flex-col justify-center py-4 min-h-0 overflow-hidden">
+            <div className="space-y-4 md:space-y-6 overflow-y-auto no-scrollbar">
               <Badge className="mx-auto">{currentQuestion.subject}</Badge>
-              <h2 className="text-3xl md:text-4xl font-light tracking-tight text-neutral-900 text-center leading-tight">
+              <h2 className="text-2xl md:text-4xl font-light tracking-tight text-white text-center leading-tight px-2">
                 {currentQuestion.text}
               </h2>
               <AnimatePresence>
@@ -324,7 +325,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
                     initial={{ opacity: 0, scale: 0.98, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.98, y: 10 }}
-                    className="mt-6 p-4 bg-neutral-50 border border-neutral-100 rounded-2xl text-[10px] text-neutral-500 text-center uppercase tracking-widest font-medium"
+                    className="mt-4 p-4 bg-white/5 border border-white/5 rounded-2xl text-[10px] text-neutral-400 text-center uppercase tracking-widest font-medium"
                   >
                     {expertRecommendation}
                   </motion.div>
@@ -333,8 +334,8 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
             </div>
           </div>
 
-          {/* Options Area */}
-          <div className="space-y-3 pb-8">
+          {/* Options Area - Compact */}
+          <div className="space-y-2 md:space-y-3 pb-4 shrink-0">
             {currentQuestion.options.map((option, idx) => {
               const isSelected = selectedAnswer === idx;
               const isCorrect = idx === currentQuestion.correctAnswerIndex;
@@ -346,19 +347,19 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
                   key={idx}
                   disabled={selectedAnswer !== null || disabledOptions.includes(idx)}
                   onClick={() => handleAnswer(idx)}
-                  className={`w-full p-6 rounded-3xl border text-left transition-all duration-300 flex justify-between items-center group ${
+                  className={`w-full p-4 md:p-6 rounded-2xl md:rounded-3xl border text-left transition-all duration-300 flex justify-between items-center group ${
                     disabledOptions.includes(idx) ? 'opacity-0 pointer-events-none' : 'opacity-100'
                   } ${
                     showResult
                       ? isCorrect
-                        ? 'bg-neutral-900 border-neutral-900 text-white'
+                        ? 'bg-white border-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)]'
                         : isWrong
-                          ? 'bg-rose-50 border-rose-100 text-rose-600'
-                          : 'bg-white border-neutral-50 text-neutral-200'
-                      : 'bg-neutral-50 border-neutral-50 text-neutral-900 hover:border-neutral-200 active:scale-[0.98]'
+                          ? 'bg-rose-500/10 border-rose-500/20 text-rose-500'
+                          : 'bg-transparent border-white/5 text-neutral-700'
+                      : 'bg-white/5 border-white/5 text-white hover:border-white/20 active:scale-[0.98]'
                   }`}
                 >
-                  <span className="text-sm font-medium">{option}</span>
+                  <span className="text-sm font-medium pr-4">{option}</span>
                   {showResult && isCorrect && <span className="text-xs">✓</span>}
                   {showResult && isWrong && <span className="text-xs">✕</span>}
                   <AnimatePresence>
@@ -366,7 +367,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
                       <motion.span 
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="text-[10px] font-bold text-neutral-400"
+                        className="text-[10px] font-bold text-neutral-500"
                       >
                         {pollResults[idx]}%
                       </motion.span>
@@ -379,7 +380,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
 
           {/* Lifelines - Minimalist */}
           {settings.mode === GameMode.MILLIONAIRE && (
-            <div className="grid grid-cols-3 gap-3 pb-8">
+            <div className="grid grid-cols-3 gap-2 md:gap-3 pb-4 shrink-0">
               {(['fiftyFifty', 'audiencePoll', 'expertIntel'] as const).map(l => {
                 const isUsed = !lifelines[l];
                 const isAnswering = selectedAnswer !== null;
@@ -390,12 +391,12 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
                     whileTap={!isUsed && !isAnswering ? { scale: 0.98 } : {}}
                     disabled={isUsed || isAnswering}
                     onClick={() => useLifeline(l)}
-                    className={`py-4 rounded-2xl border text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
+                    className={`py-3 md:py-4 rounded-xl md:rounded-2xl border text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
                       isUsed 
-                        ? 'border-transparent bg-neutral-50 text-neutral-200 opacity-50' 
+                        ? 'border-transparent bg-white/5 text-neutral-700 opacity-50' 
                         : isAnswering
-                          ? 'border-neutral-100 bg-neutral-50 text-neutral-200'
-                          : 'border-neutral-100 bg-white text-neutral-400 hover:border-neutral-900 hover:text-neutral-900'
+                          ? 'border-white/5 bg-white/5 text-neutral-700'
+                          : 'border-white/10 bg-transparent text-neutral-400 hover:border-white/40 hover:text-white'
                     }`}
                   >
                     {l === 'fiftyFifty' ? '50:50' : l === 'audiencePoll' ? 'Poll' : 'Intel'}
@@ -411,11 +412,11 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-6 pb-12"
+                className="space-y-4 pb-6 shrink-0"
               >
-                <div className="p-6 bg-neutral-50 rounded-3xl border border-neutral-100">
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
                   <SectionTitle>Insight</SectionTitle>
-                  <p className="text-sm text-neutral-500 leading-relaxed">
+                  <p className="text-xs text-neutral-400 leading-relaxed">
                     {currentQuestion.explanation}
                   </p>
                 </div>
@@ -431,7 +432,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
       {/* Abort Button - Subtle */}
       <button 
         onClick={onAbort}
-        className="fixed top-6 right-6 text-neutral-300 hover:text-neutral-900 transition-colors text-[10px] font-bold uppercase tracking-widest z-50"
+        className="fixed top-6 right-6 text-neutral-600 hover:text-white transition-colors text-[10px] font-bold uppercase tracking-widest z-50"
       >
         Abort
       </button>
@@ -443,20 +444,20 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-8 bg-white/80 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-8 bg-black/60 backdrop-blur-md"
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="max-w-xs w-full bg-white border border-neutral-100 rounded-[2.5rem] p-8 text-center space-y-8 shadow-2xl"
+              className="max-w-xs w-full bg-neutral-900 border border-white/10 rounded-[2.5rem] p-8 text-center space-y-8 shadow-2xl"
             >
               <div className="space-y-2">
                 <Badge>Confirmation</Badge>
-                <h3 className="text-xl font-light tracking-tight text-neutral-900">
+                <h3 className="text-xl font-light tracking-tight text-white">
                   Activate {lifelineToConfirm === 'fiftyFifty' ? '50:50' : 'Intel'}?
                 </h3>
-                <p className="text-[10px] text-neutral-400 uppercase tracking-widest leading-relaxed">
+                <p className="text-[10px] text-neutral-500 uppercase tracking-widest leading-relaxed">
                   This protocol can only be executed once per session.
                 </p>
               </div>

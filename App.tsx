@@ -115,10 +115,10 @@ const App: React.FC = () => {
             <div className="w-full space-y-12 text-center">
               <div className="space-y-4">
                 <Badge className="mx-auto">Version 2.0</Badge>
-                <h1 className="text-7xl md:text-8xl font-light tracking-tight text-neutral-900">
+                <h1 className="text-7xl md:text-8xl font-light tracking-tight text-white">
                   Nexus
                 </h1>
-                <p className="text-neutral-400 font-medium text-sm max-w-xs mx-auto leading-relaxed">
+                <p className="text-neutral-500 font-medium text-sm max-w-xs mx-auto leading-relaxed">
                   A minimalist intelligence protocol designed for the modern mind.
                 </p>
               </div>
@@ -134,18 +134,18 @@ const App: React.FC = () => {
 
               <div className="pt-8 flex justify-center gap-8">
                 <div className="text-center">
-                  <div className="text-xl font-medium text-neutral-900">₦{stats.apexScore.toLocaleString()}</div>
-                  <div className="text-[10px] uppercase tracking-widest text-neutral-400 mt-1">Apex</div>
+                  <div className="text-xl font-medium text-white">₦{stats.apexScore.toLocaleString()}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-1">Apex</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-medium text-neutral-900">{stats.accuracy}%</div>
-                  <div className="text-[10px] uppercase tracking-widest text-neutral-400 mt-1">Accuracy</div>
+                  <div className="text-xl font-medium text-white">{stats.accuracy}%</div>
+                  <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-1">Accuracy</div>
                 </div>
               </div>
 
               <button 
                 onClick={() => setSoundEnabled(!soundEnabled)}
-                className="text-neutral-300 hover:text-neutral-900 transition-colors text-xs uppercase tracking-widest font-medium"
+                className="text-neutral-600 hover:text-white transition-colors text-xs uppercase tracking-widest font-medium"
               >
                 {soundEnabled ? 'Audio On' : 'Audio Off'}
               </button>
@@ -164,7 +164,7 @@ const App: React.FC = () => {
             <div className="space-y-12 pb-12">
               <div className="space-y-2">
                 <Badge>Configure</Badge>
-                <h2 className="text-4xl font-light tracking-tight text-neutral-900">System Link</h2>
+                <h2 className="text-4xl font-light tracking-tight text-white">System Link</h2>
               </div>
 
               <div className="space-y-6">
@@ -174,7 +174,7 @@ const App: React.FC = () => {
                     <button 
                       key={m}
                       onClick={() => setSettings(s => ({ ...s, mode: m }))}
-                      className={`p-6 rounded-3xl border transition-all text-left flex justify-between items-center ${settings.mode === m ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-100 bg-neutral-50 text-neutral-900 hover:border-neutral-200'}`}
+                      className={`p-6 rounded-3xl border transition-all text-left flex justify-between items-center ${settings.mode === m ? 'border-white bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.1)]' : 'border-white/5 bg-white/5 text-white hover:border-white/20'}`}
                     >
                       <span className="font-medium text-sm uppercase tracking-wider">{m.replace('_', ' ')}</span>
                       {settings.mode === m && <span className="text-xs">●</span>}
@@ -189,9 +189,9 @@ const App: React.FC = () => {
                   <select 
                     value={settings.subject}
                     onChange={(e) => setSettings(s => ({ ...s, subject: e.target.value }))}
-                    className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-5 text-neutral-900 font-medium outline-none uppercase text-[10px] tracking-widest appearance-none cursor-pointer focus:border-neutral-900 transition-colors"
+                    className="w-full bg-white/5 border border-white/5 rounded-2xl p-5 text-white font-medium outline-none uppercase text-[10px] tracking-widest appearance-none cursor-pointer focus:border-white/20 transition-colors"
                   >
-                    {SUBJECTS.map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                    {SUBJECTS.map(sub => <option key={sub} value={sub} className="bg-neutral-900">{sub}</option>)}
                   </select>
                 </div>
                 <div className="space-y-4">
@@ -199,9 +199,9 @@ const App: React.FC = () => {
                   <select 
                     value={settings.difficulty}
                     onChange={(e) => setSettings(s => ({ ...s, difficulty: e.target.value as Difficulty }))}
-                    className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-5 text-neutral-900 font-medium outline-none uppercase text-[10px] tracking-widest appearance-none cursor-pointer focus:border-neutral-900 transition-colors"
+                    className="w-full bg-white/5 border border-white/5 rounded-2xl p-5 text-white font-medium outline-none uppercase text-[10px] tracking-widest appearance-none cursor-pointer focus:border-white/20 transition-colors"
                   >
-                    {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
+                    {DIFFICULTIES.map(d => <option key={d} value={d} className="bg-neutral-900">{d}</option>)}
                   </select>
                 </div>
               </div>
@@ -221,9 +221,9 @@ const App: React.FC = () => {
             animate={{ opacity: 1 }}
             className="flex-1 flex flex-col items-center justify-center p-8 text-center"
           >
-            <div className="w-12 h-12 border-2 border-neutral-100 border-t-neutral-900 rounded-full animate-spin mb-8"></div>
-            <h2 className="text-xl font-light tracking-widest text-neutral-900 uppercase">Syncing</h2>
-            <div className="mt-4 text-[10px] text-neutral-400 uppercase tracking-[0.3em] font-medium animate-pulse">
+            <div className="w-12 h-12 border-2 border-white/5 border-t-cyan-500 rounded-full animate-spin mb-8"></div>
+            <h2 className="text-xl font-light tracking-widest text-white uppercase">Syncing</h2>
+            <div className="mt-4 text-[10px] text-neutral-500 uppercase tracking-[0.3em] font-medium animate-pulse">
                {LOADING_TELEMETRY[statusIdx]}
             </div>
           </motion.div>
@@ -249,21 +249,21 @@ const App: React.FC = () => {
             <div className="w-full space-y-12">
               <div className="space-y-4">
                 <Badge>{gameResult?.success ? 'Protocol Success' : 'Protocol Breach'}</Badge>
-                <h1 className="text-6xl font-light tracking-tight text-neutral-900">
+                <h1 className="text-6xl font-light tracking-tight text-white">
                   {gameResult?.success ? 'Verified' : 'Failed'}
                 </h1>
               </div>
 
-              <div className="grid grid-cols-2 gap-8 py-8 border-y border-neutral-100">
+              <div className="grid grid-cols-2 gap-8 py-8 border-y border-white/5">
                 <div className="text-center">
-                  <div className="text-3xl font-light text-neutral-900">₦{gameResult?.score.toLocaleString()}</div>
-                  <div className="text-[10px] uppercase tracking-widest text-neutral-400 mt-2">Secured</div>
+                  <div className="text-3xl font-light text-white">₦{gameResult?.score.toLocaleString()}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-2">Secured</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-light text-neutral-900">
+                  <div className="text-3xl font-light text-white">
                     {gameResult ? Math.round((gameResult.total > 0 ? (gameResult.score / (gameResult.total * 100)) * 100 : 0)) : 0}%
                   </div>
-                  <div className="text-[10px] uppercase tracking-widest text-neutral-400 mt-2">Efficiency</div>
+                  <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-2">Efficiency</div>
                 </div>
               </div>
 
@@ -283,8 +283,8 @@ const App: React.FC = () => {
             className="flex-1 flex flex-col p-8 md:p-12 max-w-lg mx-auto w-full overflow-y-auto no-scrollbar"
           >
             <div className="flex justify-between items-center mb-12">
-              <h2 className="text-3xl font-light tracking-tight text-neutral-900">Archives</h2>
-              <button onClick={() => setScreen(Screen.MENU)} className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 hover:text-neutral-900">Close</button>
+              <h2 className="text-3xl font-light tracking-tight text-white">Archives</h2>
+              <button onClick={() => setScreen(Screen.MENU)} className="text-[10px] uppercase tracking-widest font-bold text-neutral-500 hover:text-white">Close</button>
             </div>
             
             <div className="space-y-12 pb-12">
@@ -297,9 +297,9 @@ const App: React.FC = () => {
                     { label: 'Accuracy', val: `${stats.accuracy}%` },
                     { label: 'Peak Capacity', val: `₦${stats.apexScore.toLocaleString()}` }
                   ].map((s, i) => (
-                    <div key={i} className="flex justify-between items-end border-b border-neutral-100 pb-4">
-                      <span className="text-[10px] uppercase tracking-widest text-neutral-400 font-semibold">{s.label}</span>
-                      <span className="text-2xl font-light text-neutral-900">{s.val}</span>
+                    <div key={i} className="flex justify-between items-end border-b border-white/5 pb-4">
+                      <span className="text-[10px] uppercase tracking-widest text-neutral-500 font-semibold">{s.label}</span>
+                      <span className="text-2xl font-light text-white">{s.val}</span>
                     </div>
                   ))}
                 </div>
@@ -314,9 +314,9 @@ const App: React.FC = () => {
                     { name: 'Pure Precision', unlock: stats.accuracy >= 95 && stats.totalQuestions >= 30 },
                     { name: 'Elite Hub', unlock: stats.apexScore >= 10000 },
                   ].map((a, i) => (
-                    <div key={i} className={`flex items-center justify-between p-6 rounded-3xl border transition-all ${a.unlock ? 'border-neutral-900 bg-white' : 'border-neutral-100 opacity-30'}`}>
-                      <span className="text-xs font-medium uppercase tracking-wider text-neutral-900">{a.name}</span>
-                      {a.unlock ? <span className="text-neutral-900">✓</span> : <span className="text-neutral-300">○</span>}
+                    <div key={i} className={`flex items-center justify-between p-6 rounded-3xl border transition-all ${a.unlock ? 'border-white bg-white/5 text-white' : 'border-white/5 opacity-30'}`}>
+                      <span className="text-xs font-medium uppercase tracking-wider text-white">{a.name}</span>
+                      {a.unlock ? <span className="text-cyan-500">✓</span> : <span className="text-neutral-700">○</span>}
                     </div>
                   ))}
                 </div>
@@ -328,9 +328,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col relative bg-white overflow-hidden selection:bg-neutral-100">
-      {/* Background Elements - Minimalist */}
-      <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:40px_40px] opacity-[0.15]"></div>
+    <div className="h-screen w-full flex flex-col relative bg-[#050505] overflow-hidden selection:bg-cyan-500/30">
+      {/* Background Elements - Midnight Nexus */}
+      <div className="grid-bg"></div>
+      <div className="glow glow-1"></div>
+      <div className="glow glow-2"></div>
       
       {/* Main Content */}
       <main className="flex-1 relative z-10 overflow-hidden flex flex-col">
