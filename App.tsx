@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Screen, GameMode, Difficulty, GameSettings, UserStats, Question, Team } from './types';
-import { INITIAL_USER_STATS, SUBJECTS, DIFFICULTIES } from './constants';
+import { INITIAL_USER_STATS, SUBJECTS, DIFFICULTIES, MODE_DESCRIPTIONS } from './constants';
 import { audioEngine } from './services/audio';
 import { fetchQuestions } from './services/gemini';
 import { Button, Card, Badge, SectionTitle } from './components/Shared';
@@ -14,7 +14,16 @@ const LOADING_TELEMETRY = [
   "Encrypting sync protocol...",
   "Acquiring sector nodes...",
   "Optimizing stream path...",
-  "Nexus IQ Handshake active..."
+  "Nexus IQ Handshake active...",
+  "Bypassing firewall nodes...",
+  "Defragmenting memory sectors...",
+  "Initializing cognitive buffer...",
+  "Routing through deep-web nodes...",
+  "Synchronizing synaptic pulses...",
+  "Mapping knowledge topology...",
+  "Verifying integrity hashes...",
+  "Establishing secure uplink...",
+  "Scanning global databases..."
 ];
 
 const App: React.FC = () => {
@@ -31,6 +40,13 @@ const App: React.FC = () => {
   });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [gameResult, setGameResult] = useState<{ score: number; total: number; success: boolean; teamResults?: Team[] } | null>(null);
+  const [playerName, setPlayerName] = useState('');
+  const [pendingHighScore, setPendingHighScore] = useState<number | null>(null);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('nexus_theme');
+    return (saved as 'dark' | 'light') || 'dark';
+  });
+  const [modeInfo, setModeInfo] = useState<GameMode | null>(null);
   
   const [loadProgress, setLoadProgress] = useState(0);
   const [statusIdx, setStatusIdx] = useState(0);
@@ -40,6 +56,15 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('nexus_stats', JSON.stringify(stats));
   }, [stats]);
+
+  useEffect(() => {
+    localStorage.setItem('nexus_theme', theme);
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+  }, [theme]);
 
   useEffect(() => {
     audioEngine.setEnabled(soundEnabled);
@@ -88,6 +113,13 @@ const App: React.FC = () => {
 
   const handleGameOver = (finalScore: number, correct: number, total: number, success: boolean, teamResults?: Team[]) => {
     setGameResult({ score: finalScore, total, success, teamResults });
+    
+    // Check for high score
+    const isHighScore = (stats.highScores?.length || 0) < 5 || finalScore > (stats.highScores?.[stats.highScores.length - 1]?.score || 0);
+    if (isHighScore && finalScore > 0) {
+      setPendingHighScore(finalScore);
+    }
+
     setStats(prev => {
       const newTotal = prev.totalQuestions + total;
       const newCorrect = prev.correctAnswers + correct;
@@ -100,6 +132,27 @@ const App: React.FC = () => {
       };
     });
     setScreen(Screen.RESULT);
+  };
+
+  const saveHighScore = () => {
+    if (pendingHighScore === null) return;
+    const name = playerName.trim();
+    if (!name) {
+      alert("Nexus Error: Identity required for archival.");
+      return;
+    }
+    const newScore = { name, score: pendingHighScore, date: new Date().toLocaleDateString() };
+    
+    setStats(prev => {
+      const currentScores = prev.highScores || [];
+      const updatedScores = [...currentScores, newScore]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+      return { ...prev, highScores: updatedScores };
+    });
+    
+    setPendingHighScore(null);
+    setPlayerName('');
   };
 
   const renderScreen = () => {
@@ -132,23 +185,33 @@ const App: React.FC = () => {
                 </Button>
               </div>
 
-              <div className="pt-8 flex justify-center gap-8">
-                <div className="text-center">
-                  <div className="text-xl font-medium text-white">₦{stats.apexScore.toLocaleString()}</div>
-                  <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-1">Apex</div>
+              <div className="pt-8 flex flex-col items-center gap-6">
+                <div className="flex justify-center gap-8">
+                  <div className="text-center">
+                    <div className="text-xl font-medium text-[var(--text-primary)]">₦{stats.apexScore.toLocaleString()}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-1">Apex</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-medium text-[var(--text-primary)]">{stats.accuracy}%</div>
+                    <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-1">Accuracy</div>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-xl font-medium text-white">{stats.accuracy}%</div>
-                  <div className="text-[10px] uppercase tracking-widest text-neutral-500 mt-1">Accuracy</div>
+
+                <div className="flex gap-6">
+                  <button 
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                    className="text-neutral-600 hover:text-[var(--text-primary)] transition-colors text-[10px] uppercase tracking-widest font-bold"
+                  >
+                    {soundEnabled ? 'Audio On' : 'Audio Off'}
+                  </button>
+                  <button 
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="text-neutral-600 hover:text-[var(--text-primary)] transition-colors text-[10px] uppercase tracking-widest font-bold"
+                  >
+                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  </button>
                 </div>
               </div>
-
-              <button 
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                className="text-neutral-600 hover:text-white transition-colors text-xs uppercase tracking-widest font-medium"
-              >
-                {soundEnabled ? 'Audio On' : 'Audio Off'}
-              </button>
             </div>
           </motion.div>
         );
@@ -171,17 +234,60 @@ const App: React.FC = () => {
                 <SectionTitle>Mode</SectionTitle>
                 <div className="grid grid-cols-1 gap-3">
                   {[GameMode.WIPEOUT, GameMode.MILLIONAIRE, GameMode.TEAM_BATTLE, GameMode.LIGHTNING, GameMode.GAUNTLET, GameMode.CATEGORY_KINGS].map(m => (
-                    <button 
-                      key={m}
-                      onClick={() => setSettings(s => ({ ...s, mode: m }))}
-                      className={`p-6 rounded-3xl border transition-all text-left flex justify-between items-center ${settings.mode === m ? 'border-white bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.1)]' : 'border-white/5 bg-white/5 text-white hover:border-white/20'}`}
-                    >
-                      <span className="font-medium text-sm uppercase tracking-wider">{m.replace('_', ' ')}</span>
-                      {settings.mode === m && <span className="text-xs">●</span>}
-                    </button>
+                    <div key={m} className="relative group">
+                      <button 
+                        onClick={() => setSettings(s => ({ ...s, mode: m }))}
+                        className={`w-full p-6 rounded-3xl border transition-all text-left flex justify-between items-center ${settings.mode === m ? 'border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-[0_0_20px_rgba(255,255,255,0.1)]' : 'border-[var(--border)] bg-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]'}`}
+                      >
+                        <span className="font-medium text-sm uppercase tracking-wider">{m.replace('_', ' ')}</span>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setModeInfo(m);
+                            }}
+                            className={`w-6 h-6 rounded-full border flex items-center justify-center text-[10px] font-bold transition-colors ${settings.mode === m ? 'border-[var(--bg-primary)] text-[var(--bg-primary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]' : 'border-[var(--text-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]'}`}
+                          >
+                            ?
+                          </button>
+                          {settings.mode === m && <span className="text-xs">●</span>}
+                        </div>
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
+
+              <AnimatePresence>
+                {modeInfo && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/60 backdrop-blur-md"
+                    onClick={() => setModeInfo(null)}
+                  >
+                    <motion.div 
+                      initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                      className="max-w-xs w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-[2.5rem] p-8 text-center space-y-6 shadow-2xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="space-y-2">
+                        <Badge>{modeInfo.replace('_', ' ')}</Badge>
+                        <h3 className="text-xl font-light tracking-tight text-[var(--text-primary)]">Protocol Rules</h3>
+                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                          {MODE_DESCRIPTIONS[modeInfo]}
+                        </p>
+                      </div>
+                      <Button onClick={() => setModeInfo(null)} className="w-full" variant="primary">
+                        Acknowledged
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div className="space-y-8">
                 <div className="space-y-4">
@@ -268,8 +374,24 @@ const App: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                <Button onClick={startGame} className="w-full" variant="primary">Restart</Button>
-                <Button variant="ghost" onClick={() => setScreen(Screen.MENU)} className="w-full">Exit to Hub</Button>
+                {pendingHighScore !== null ? (
+                  <div className="space-y-4 p-6 bg-white/5 rounded-3xl border border-white/10">
+                    <SectionTitle>New High Score</SectionTitle>
+                    <input 
+                      type="text" 
+                      placeholder="Enter Name"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-cyan-500 transition-colors text-center"
+                    />
+                    <Button onClick={saveHighScore} className="w-full" variant="accent">Save to Archives</Button>
+                  </div>
+                ) : (
+                  <>
+                    <Button onClick={startGame} className="w-full" variant="primary">Restart</Button>
+                    <Button variant="ghost" onClick={() => setScreen(Screen.MENU)} className="w-full">Exit to Hub</Button>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
@@ -288,6 +410,28 @@ const App: React.FC = () => {
             </div>
             
             <div className="space-y-12 pb-12">
+              <div className="space-y-8">
+                <SectionTitle>Top Performers</SectionTitle>
+                <div className="space-y-4">
+                  {(stats.highScores || []).length > 0 ? (
+                    stats.highScores.map((hs, i) => (
+                      <div key={i} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <div className="flex items-center gap-4">
+                          <span className="text-cyan-500 font-mono text-xs">0{i + 1}</span>
+                          <span className="text-sm font-medium text-white">{hs.name}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-light text-white">₦{hs.score.toLocaleString()}</div>
+                          <div className="text-[8px] text-neutral-500 uppercase tracking-widest">{hs.date}</div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-neutral-600 text-[10px] uppercase tracking-widest">No data recorded</div>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-8">
                 <SectionTitle>Neural Metrics</SectionTitle>
                 <div className="space-y-10">
@@ -328,7 +472,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col relative bg-[#050505] overflow-hidden selection:bg-cyan-500/30">
+    <div className="h-screen w-full flex flex-col relative bg-[var(--bg-primary)] overflow-hidden selection:bg-cyan-500/30 transition-colors duration-300">
       {/* Background Elements - Midnight Nexus */}
       <div className="grid-bg"></div>
       <div className="glow glow-1"></div>

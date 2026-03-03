@@ -29,10 +29,20 @@ export const WIPEOUT_PRIZES = [
 
 export const SAFETY_NETS = [4, 9];
 
+export const MODE_DESCRIPTIONS: Record<string, string> = {
+  WIPEOUT: "Survival mode. One wrong answer and the protocol is terminated. High risk, high yield.",
+  MILLIONAIRE: "Classic ladder. Reach safety nets to secure your yield. 15 nodes to the apex.",
+  TEAM_BATTLE: "Symmetric competition. Squads take turns syncing nodes. Highest accuracy wins.",
+  LIGHTNING: "Velocity test. 60 seconds to sync as many nodes as possible. Speed is critical.",
+  GAUNTLET: "Endurance run. 15 seconds per node. Correct syncs add time. How long can you last?",
+  CATEGORY_KINGS: "Domain mastery. Sync 3 consecutive nodes in 6 different sectors to conquer the hub."
+};
+
 export const INITIAL_USER_STATS = {
   apexScore: 0,
   totalQuestions: 0,
   correctAnswers: 0,
   accuracy: 0,
-  milestones: []
+  milestones: [],
+  highScores: []
 };

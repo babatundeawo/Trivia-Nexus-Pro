@@ -159,6 +159,59 @@ class AudioEngine {
     osc.start();
     osc.stop(now + 0.2);
   }
+
+  playLifeline5050() {
+    if (!this.enabled) return;
+    this.init();
+    const now = this.ctx!.currentTime;
+    [440, 880].forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, now + i * 0.1);
+      gain.gain.setValueAtTime(0.02, now + i * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.2);
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(now + i * 0.1);
+      osc.stop(now + i * 0.1 + 0.2);
+    });
+  }
+
+  playLifelinePoll() {
+    if (!this.enabled) return;
+    this.init();
+    const now = this.ctx!.currentTime;
+    for (let i = 0; i < 4; i++) {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(660 + i * 220, now + i * 0.05);
+      gain.gain.setValueAtTime(0.03, now + i * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.1);
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(now + i * 0.05);
+      osc.stop(now + i * 0.05 + 0.1);
+    }
+  }
+
+  playLifelineIntel() {
+    if (!this.enabled) return;
+    this.init();
+    const now = this.ctx!.currentTime;
+    const osc = this.ctx!.createOscillator();
+    const gain = this.ctx!.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
+    gain.gain.setValueAtTime(0.02, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.connect(gain);
+    gain.connect(this.ctx!.destination);
+    osc.start();
+    osc.stop(now + 0.5);
+  }
 }
 
 export const audioEngine = new AudioEngine();

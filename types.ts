@@ -35,12 +35,19 @@ export interface Question {
   explanation: string;
 }
 
+export interface HighScore {
+  name: string;
+  score: number;
+  date: string;
+}
+
 export interface UserStats {
   apexScore: number;
   totalQuestions: number;
   correctAnswers: number;
   accuracy: number;
   milestones: string[];
+  highScores: HighScore[];
 }
 
 export interface Team {

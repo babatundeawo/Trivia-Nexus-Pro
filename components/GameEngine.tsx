@@ -41,6 +41,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
   const [pollResults, setPollResults] = useState<number[] | null>(null);
   const [expertRecommendation, setExpertRecommendation] = useState<string | null>(null);
   const [lifelineToConfirm, setLifelineToConfirm] = useState<keyof Lifelines | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   // Category Kings Specific
   const [conqueredCategories, setConqueredCategories] = useState<string[]>([]);
@@ -64,7 +65,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
 
   useEffect(() => {
     const isTimedMode = [GameMode.LIGHTNING, GameMode.GAUNTLET].includes(settings.mode);
-    if (isTimedMode) {
+    if (isTimedMode && !isPaused) {
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => Math.max(0, prev - 1));
       }, 1000);
@@ -72,7 +73,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
         if (timerRef.current) clearInterval(timerRef.current);
       };
     }
-  }, [settings.mode]);
+  }, [settings.mode, isPaused]);
 
   // Handle timeout side effect separately to avoid updating parent state during render/state-update
   useEffect(() => {
@@ -235,13 +236,14 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
   const executeLifeline = (type: keyof Lifelines) => {
     setLifelines(prev => ({ ...prev, [type]: false }));
     setLifelineToConfirm(null);
-    audioEngine.playClick();
 
     if (type === 'fiftyFifty') {
+      audioEngine.playLifeline5050();
       const wrongIndices = [0, 1, 2, 3].filter(i => i !== currentQuestion.correctAnswerIndex);
       const toRemove = wrongIndices.sort(() => 0.5 - Math.random()).slice(0, 2);
       setDisabledOptions(toRemove);
     } else if (type === 'audiencePoll') {
+      audioEngine.playLifelinePoll();
       const results = [0, 0, 0, 0];
       const correctIdx = currentQuestion.correctAnswerIndex;
       results[correctIdx] = 60 + Math.floor(Math.random() * 15);
@@ -253,6 +255,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
       });
       setPollResults(results);
     } else if (type === 'expertIntel') {
+      audioEngine.playLifelineIntel();
       const rec = currentQuestion.options[currentQuestion.correctAnswerIndex];
       setExpertRecommendation(`NEXUS_CORE: Cross-referencing... High probability detected for: ${rec.toUpperCase()}`);
     }
@@ -272,12 +275,12 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
           {/* Minimalist HUD */}
           <div className="flex justify-between items-center pt-2 pb-4 shrink-0">
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Node</span>
-              <span className="text-xl font-light text-white">{currentIndex + 1} / {settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length}</span>
+              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Node</span>
+              <span className="text-xl font-light text-[var(--text-primary)]">{currentIndex + 1} / {settings.mode === GameMode.TEAM_BATTLE ? teams.length * 5 : questions.length}</span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Yield</span>
-              <span className="text-xl font-light text-white">₦{score.toLocaleString()}</span>
+              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Yield</span>
+              <span className="text-xl font-light text-[var(--text-primary)]">₦{score.toLocaleString()}</span>
             </div>
           </div>
 
@@ -289,13 +292,25 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
           </div>
 
           {/* Progress / Timer */}
-          <div className="w-full h-px bg-white/5 relative overflow-hidden shrink-0 mb-4">
+          <div className="w-full h-px bg-[var(--border)] relative overflow-hidden shrink-0 mb-4">
             <motion.div 
-              className={`absolute top-0 left-0 h-full ${timeLeft < 10 && [GameMode.LIGHTNING, GameMode.GAUNTLET].includes(settings.mode) ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]'}`}
+              className={`absolute top-0 left-0 h-full ${timeLeft < 10 && [GameMode.LIGHTNING, GameMode.GAUNTLET].includes(settings.mode) ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-[var(--text-primary)] shadow-[0_0_10px_rgba(255,255,255,0.5)]'}`}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.1 }}
             ></motion.div>
           </div>
+
+          {/* Time Progress Bar - Only for timed modes */}
+          {[GameMode.LIGHTNING, GameMode.GAUNTLET].includes(settings.mode) && (
+            <div className="w-full h-1 bg-[var(--border)] relative overflow-hidden shrink-0 mb-4 rounded-full">
+              <motion.div 
+                className={`absolute top-0 left-0 h-full ${timeLeft < 10 ? 'bg-rose-500' : 'bg-[var(--accent)]'}`}
+                initial={{ width: '100%' }}
+                animate={{ width: `${(timeLeft / (settings.mode === GameMode.GAUNTLET ? 15 : 60)) * 100}%` }}
+                transition={{ duration: 1, ease: "linear" }}
+              ></motion.div>
+            </div>
+          )}
 
           {/* Team Battle Scores - Minimal */}
           {settings.mode === GameMode.TEAM_BATTLE && (
@@ -303,10 +318,10 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
               {teams.map((team, idx) => (
                 <div 
                   key={idx} 
-                  className={`flex-shrink-0 flex flex-col border-b-2 transition-all pb-1 ${currentTeamIdx === idx ? 'border-white opacity-100' : 'border-transparent opacity-30'}`}
+                  className={`flex-shrink-0 flex flex-col border-b-2 transition-all pb-1 ${currentTeamIdx === idx ? 'border-[var(--text-primary)] opacity-100' : 'border-transparent opacity-30'}`}
                 >
-                  <span className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">{team.name}</span>
-                  <span className="text-sm font-medium text-white">{team.score}</span>
+                  <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">{team.name}</span>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">{team.score}</span>
                 </div>
               ))}
             </div>
@@ -316,7 +331,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
           <div className="flex-1 flex flex-col justify-center py-4 min-h-0 overflow-hidden">
             <div className="space-y-4 md:space-y-6 overflow-y-auto no-scrollbar">
               <Badge className="mx-auto">{currentQuestion.subject}</Badge>
-              <h2 className="text-2xl md:text-4xl font-light tracking-tight text-white text-center leading-tight px-2">
+              <h2 className="text-2xl md:text-4xl font-light tracking-tight text-[var(--text-primary)] text-center leading-tight px-2">
                 {currentQuestion.text}
               </h2>
               <AnimatePresence>
@@ -325,7 +340,7 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
                     initial={{ opacity: 0, scale: 0.98, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.98, y: 10 }}
-                    className="mt-4 p-4 bg-white/5 border border-white/5 rounded-2xl text-[10px] text-neutral-400 text-center uppercase tracking-widest font-medium"
+                    className="mt-4 p-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl text-[10px] text-[var(--text-secondary)] text-center uppercase tracking-widest font-medium"
                   >
                     {expertRecommendation}
                   </motion.div>
@@ -352,11 +367,11 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
                   } ${
                     showResult
                       ? isCorrect
-                        ? 'bg-white border-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)]'
+                        ? 'bg-[var(--text-primary)] border-[var(--text-primary)] text-[var(--bg-primary)] shadow-[0_0_20px_rgba(255,255,255,0.2)]'
                         : isWrong
                           ? 'bg-rose-500/10 border-rose-500/20 text-rose-500'
-                          : 'bg-transparent border-white/5 text-neutral-700'
-                      : 'bg-white/5 border-white/5 text-white hover:border-white/20 active:scale-[0.98]'
+                          : 'bg-transparent border-[var(--border)] text-[var(--text-secondary)]'
+                      : 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)] active:scale-[0.98]'
                   }`}
                 >
                   <span className="text-sm font-medium pr-4">{option}</span>
@@ -393,10 +408,10 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
                     onClick={() => useLifeline(l)}
                     className={`py-3 md:py-4 rounded-xl md:rounded-2xl border text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
                       isUsed 
-                        ? 'border-transparent bg-white/5 text-neutral-700 opacity-50' 
+                        ? 'border-transparent bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-50' 
                         : isAnswering
-                          ? 'border-white/5 bg-white/5 text-neutral-700'
-                          : 'border-white/10 bg-transparent text-neutral-400 hover:border-white/40 hover:text-white'
+                          ? 'border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                          : 'border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     {l === 'fiftyFifty' ? '50:50' : l === 'audiencePoll' ? 'Poll' : 'Intel'}
@@ -414,9 +429,9 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4 pb-6 shrink-0"
               >
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="p-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl">
                   <SectionTitle>Insight</SectionTitle>
-                  <p className="text-xs text-neutral-400 leading-relaxed">
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                     {currentQuestion.explanation}
                   </p>
                 </div>
@@ -430,12 +445,47 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
       </div>
 
       {/* Abort Button - Subtle */}
-      <button 
-        onClick={onAbort}
-        className="fixed top-6 right-6 text-neutral-600 hover:text-white transition-colors text-[10px] font-bold uppercase tracking-widest z-50"
-      >
-        Abort
-      </button>
+      <div className="fixed top-6 right-6 flex gap-4 z-50">
+        <button 
+          onClick={() => setIsPaused(true)}
+          className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-[10px] font-bold uppercase tracking-widest"
+        >
+          Pause
+        </button>
+        <button 
+          onClick={onAbort}
+          className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-[10px] font-bold uppercase tracking-widest"
+        >
+          Abort
+        </button>
+      </div>
+
+      {/* Pause Overlay */}
+      <AnimatePresence>
+        {isPaused && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="max-w-xs w-full text-center space-y-8"
+            >
+              <div className="space-y-4">
+                <Badge>Protocol Paused</Badge>
+                <h2 className="text-4xl font-light tracking-tight text-white">Neural Link Suspended</h2>
+              </div>
+              <Button onClick={() => setIsPaused(false)} className="w-full" variant="primary">
+                Resume Protocol
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Lifeline Confirmation Prompt */}
       <AnimatePresence>
@@ -450,14 +500,14 @@ const GameEngine: React.FC<Props> = ({ settings, questions, onGameOver, onAbort 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="max-w-xs w-full bg-neutral-900 border border-white/10 rounded-[2.5rem] p-8 text-center space-y-8 shadow-2xl"
+              className="max-w-xs w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-[2.5rem] p-8 text-center space-y-8 shadow-2xl"
             >
               <div className="space-y-2">
                 <Badge>Confirmation</Badge>
-                <h3 className="text-xl font-light tracking-tight text-white">
+                <h3 className="text-xl font-light tracking-tight text-[var(--text-primary)]">
                   Activate {lifelineToConfirm === 'fiftyFifty' ? '50:50' : 'Intel'}?
                 </h3>
-                <p className="text-[10px] text-neutral-500 uppercase tracking-widest leading-relaxed">
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest leading-relaxed">
                   This protocol can only be executed once per session.
                 </p>
               </div>
